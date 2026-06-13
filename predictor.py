@@ -556,20 +556,36 @@ def _validate_score_winner(pred, home_name, away_name):
     else:
         score_winner = "Draw"
 
-    # 3. 三方一致性检查：reasoning > score > winner（优先级递减）
-    if reasoning_winner and reasoning_winner != score_winner:
-        # reasoning 和 score 冲突 → 以 reasoning 为准，翻转 score
-        if reasoning_winner == home_name:
+    # 3. 概率优先：如果概率明确倾向某队，以概率为准
+    prob = pred.get("probability", {})
+    home_p = prob.get("home", 0)
+    away_p = prob.get("away", 0)
+    draw_p = prob.get("draw", 0)
+    max_p = max(home_p, away_p, draw_p)
+    prob_winner = None
+    if home_p == max_p and home_p > draw_p + 0.10 and home_p > away_p + 0.10:
+        prob_winner = home_name
+    elif away_p == max_p and away_p > draw_p + 0.10 and away_p > home_p + 0.10:
+        prob_winner = away_name
+    elif draw_p == max_p:
+        prob_winner = "Draw"
+
+    # 三方一致性检查：probability > reasoning > score（优先级递减）
+    final_winner = prob_winner or reasoning_winner or score_winner
+
+    if final_winner and final_winner != score_winner:
+        # 权威源和 score 冲突 → 翻转 score
+        if final_winner == home_name:
             pred["score"] = f"{max(hg, ag)}-{min(hg, ag)}"
             pred["winner"] = home_name
-        elif reasoning_winner == away_name:
+        elif final_winner == away_name:
             pred["score"] = f"{min(hg, ag)}-{max(hg, ag)}"
             pred["winner"] = away_name
         else:  # Draw
             avg = (hg + ag) // 2
             pred["score"] = f"{avg}-{avg}"
             pred["winner"] = "Draw"
-    elif score_winner != winner and winner.lower() != "draw" and score_winner != winner:
+    elif score_winner != winner and winner.lower() != "draw":
         # score 和 winner 冲突 → 以 score 为准
         pred["winner"] = score_winner
     elif winner.lower() == "draw" and score_winner != "Draw":
