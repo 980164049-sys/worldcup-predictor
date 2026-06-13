@@ -236,6 +236,67 @@ def api_refresh():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/refresh-predictions", methods=["POST"])
+def api_refresh_predictions():
+    """清除指定比赛的预测缓存，强制重新预测"""
+    data = request.get_json() or {}
+    clear_all = data.get("all", False)
+    teams = data.get("teams", [])  # 要刷新的球队名列表
+
+    pred_cache = _load_pred_cache()
+
+    if clear_all:
+        pred_cache = {}
+    elif teams:
+        # 清除涉及这些球队的所有缓存
+        stale_keys = []
+        for key in list(pred_cache.keys()):
+            key_lower = key.lower()
+            for team in teams:
+                if team.lower() in key_lower:
+                    stale_keys.append(key)
+                    break
+        for key in stale_keys:
+            del pred_cache[key]
+
+    _save_pred_cache(pred_cache)
+    return jsonify({"status": "ok", "removed": len(pred_cache) if clear_all else len(stale_keys) if teams else 0})
+
+
+@app.route("/api/update-result", methods=["POST"])
+def api_update_result():
+    """更新比赛结果，并自动清除相关预测缓存"""
+    data = request.get_json()
+    date_cn = data.get("date_cn", "")
+    home = data.get("home", "")
+    away = data.get("away", "")
+    result = data.get("result", "")
+
+    if not all([date_cn, home, away, result]):
+        return jsonify({"error": "缺少参数"}), 400
+
+    from data.fetcher import update_match_result
+    update_match_result(date_cn, home, away, result)
+
+    # 自动清除这两队的所有未来预测缓存
+    pred_cache = _load_pred_cache()
+    stale_keys = []
+    for key in list(pred_cache.keys()):
+        for team in [home, away]:
+            if team.lower() in key.lower():
+                stale_keys.append(key)
+                break
+    for key in set(stale_keys):
+        del pred_cache[key]
+    _save_pred_cache(pred_cache)
+
+    return jsonify({
+        "status": "ok",
+        "result_updated": f"{home} {result} {away}",
+        "predictions_cleared": len(set(stale_keys))
+    })
+
+
 @app.route("/api/standings")
 def api_standings():
     """获取小组积分榜（简化版，从赛果推算）"""
