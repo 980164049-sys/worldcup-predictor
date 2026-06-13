@@ -13,6 +13,13 @@ ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 
 _client = None
 
+# 预测缓存（同一场比赛不会重复调 API）
+_predict_cache = {}
+
+
+def _cache_key(home, away, context):
+    return f"{home.lower()}|{away.lower()}|{context.lower()}"
+
 
 def get_client():
     """延迟初始化 Anthropic 客户端"""
@@ -83,6 +90,11 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
         raise ValueError(f"未找到球队: {home_team}")
     if not away:
         raise ValueError(f"未找到球队: {away_team}")
+
+    # 检查缓存
+    key = _cache_key(home["name"], away["name"], match_context)
+    if key in _predict_cache:
+        return _predict_cache[key]
 
     # 获取近期战绩
     home_form = get_team_recent_form(home["name"])
@@ -167,7 +179,7 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
         max_tokens=1024 if not deep else 2048,
         system=system_prompt,
         messages=[{"role": "user", "content": user_prompt}],
-        temperature=0.7,
+        temperature=0.1,
     )
 
     # 解析返回的 JSON（过滤可能的 thinking block）
@@ -190,6 +202,9 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
     # 补充球队信息
     prediction["home_team"] = {"name": home["name"], "name_cn": home["name_cn"]}
     prediction["away_team"] = {"name": away["name"], "name_cn": away["name_cn"]}
+
+    # 存入缓存
+    _predict_cache[key] = prediction
 
     return prediction
 
