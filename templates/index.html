@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#f59e0b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="世界杯预测">
+    <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+    <link rel="apple-touch-icon" href="/static/icon.svg">
+    <link rel="manifest" href="/manifest.json">
+    <title>2026世界杯 AI 预测</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- PWA 安装提示 -->
+        <div id="install-banner" class="install-banner" style="display:none;">
+            <span>📱 添加到手机桌面，随时打开预测</span>
+            <button onclick="this.parentElement.style.display='none'">✕</button>
+        </div>
+
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="logo">
+                <span class="trophy">🏆</span>
+                <h1>2026 世界杯 AI 预测</h1>
+            </div>
+            <div class="header-info">
+                <span class="date-badge">{{ tomorrow_str }}</span>
+                {% if not has_api_key %}
+                <span class="warning-badge" title="AI 预测需要 API Key">⚠️ 数据模式</span>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- 标签切换 -->
+        <nav class="tabs">
+            <button class="tab active" data-tab="tomorrow">🔮 明日预测</button>
+            <button class="tab" data-tab="predict">🔮 自定义预测</button>
+            <button class="tab" data-tab="standings">📊 积分榜</button>
+            <button class="tab" data-tab="schedule">📋 全部赛程</button>
+        </nav>
+
+        <!-- 明日预测面板 -->
+        <section id="panel-tomorrow" class="panel active">
+            <h2>📅 北京时间 {{ tomorrow_str }} 比赛 · AI 预测</h2>
+            <div class="match-list" id="tomorrow-matches">
+                {% if tomorrow_matches %}
+                    {% for m in tomorrow_matches %}
+                    <div class="match-card" id="match-{{ loop.index }}"
+                         data-home="{{ m.home }}"
+                         data-away="{{ m.away }}"
+                         data-group="{{ m.group }}">
+                        <div class="match-time">
+                            <span class="time">{{ m.time_cn }}</span>
+                            <span class="group-badge">小组 {{ m.group }}</span>
+                        </div>
+                        <div class="match-teams">
+                            <div class="team home">
+                                <span class="team-name">{{ m.home_cn }}</span>
+                            </div>
+                            <div class="score-area">
+                                <span class="score upcoming">VS</span>
+                            </div>
+                            <div class="team away">
+                                <span class="team-name">{{ m.away_cn }}</span>
+                            </div>
+                        </div>
+                        <div class="match-venue">{{ m.venue }}</div>
+                        <div class="match-prediction" id="pred-{{ loop.index }}">
+                            <div class="pred-loading">
+                                <div class="spinner"></div>
+                                <span>AI 正在分析...</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <p>🏖️ 明日无比赛，休息日~</p>
+                        <p>请查看全部赛程或使用自定义预测功能</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- 自定义预测面板 -->
+        <section id="panel-predict" class="panel" style="display:none;">
+            <h2>任选两队，AI 对决</h2>
+            <div class="predict-form">
+                <div class="team-selectors">
+                    <div class="team-picker">
+                        <label>主队</label>
+                        <select id="home-team" class="team-select">
+                            <option value="">-- 选择球队 --</option>
+                            {% for t in all_teams %}
+                            <option value="{{ t.name }}">{{ t.name_cn }} · {{ t.name }} ({{ t.group }}组 #{{ t.fifa_ranking }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="vs-divider">
+                        <span>VS</span>
+                    </div>
+                    <div class="team-picker">
+                        <label>客队</label>
+                        <select id="away-team" class="team-select">
+                            <option value="">-- 选择球队 --</option>
+                            {% for t in all_teams %}
+                            <option value="{{ t.name }}">{{ t.name_cn }} · {{ t.name }} ({{ t.group }}组 #{{ t.fifa_ranking }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="predict-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="use-ai" checked>
+                        使用 AI 预测（取消勾选使用数据模型）
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="deep-mode">
+                        深度分析模式
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="conservative-mode" checked>
+                        🛡️ 谨慎模式（购彩参考）
+                    </label>
+                    <input type="text" id="match-context" class="text-input" placeholder="比赛背景（可选）：如 小组赛第1轮">
+                </div>
+                <button class="btn btn-primary btn-large" onclick="doPredict()">
+                    🔮 开始预测
+                </button>
+            </div>
+            <div id="predict-result" class="predict-result" style="display:none;"></div>
+        </section>
+
+        <!-- 积分榜面板 -->
+        <section id="panel-standings" class="panel" style="display:none;">
+            <h2>小组积分榜</h2>
+            <div id="standings-content">
+                <div class="loading">加载中...</div>
+            </div>
+        </section>
+
+        <!-- 全部赛程面板 -->
+        <section id="panel-schedule" class="panel" style="display:none;">
+            <h2>全部小组赛赛程</h2>
+            <div id="schedule-content">
+                <div class="loading">加载中...</div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 预测结果弹窗 -->
+    <div id="modal-overlay" class="modal-overlay" style="display:none;">
+        <div class="modal" id="modal-content"></div>
+    </div>
+
+    <script src="/static/script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js');
+        }
+    </script>
+</body>
+</html>
