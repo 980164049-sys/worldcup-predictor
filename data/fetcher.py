@@ -54,7 +54,7 @@ BUILT_IN_SCHEDULE = [
      "venue": "Gillette Stadium, Foxborough", "time_cn": "09:00",
      "result": None},
     {"date_cn": "06-14", "group": "D", "round_num": 1,
-     "home": "Australia", "away": "Türkiye",
+     "home": "Australia", "away": "Turkiye",
      "venue": "BC Place, Vancouver", "time_cn": "12:00",
      "result": None},
 
