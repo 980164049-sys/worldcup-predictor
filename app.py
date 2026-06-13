@@ -105,8 +105,11 @@ def api_predict():
         return jsonify({"error": "不能选同一支球队"}), 400
 
     try:
+        match_info = data.get("match_info", {})
         if use_ai:
-            prediction = predict_match(home_team, away_team, match_context, deep=deep, conservative=conservative)
+            prediction = predict_match(home_team, away_team, match_context,
+                                       deep=deep, conservative=conservative,
+                                       match_info=match_info)
         else:
             prediction = quick_predict(home_team, away_team, match_context)
 
