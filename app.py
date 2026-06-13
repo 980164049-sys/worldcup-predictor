@@ -27,30 +27,45 @@ _NAME_CN_MAP = {}
 
 
 def _build_name_map():
-    """构建英文名→中文名映射（含变音符容错）"""
+    """构建英文名→中文名映射"""
     global _NAME_CN_MAP
     if _NAME_CN_MAP:
         return _NAME_CN_MAP
-    import unicodedata
     teams_data = load_teams_data()
     for group_data in teams_data["groups"].values():
         for team in group_data["teams"]:
             _NAME_CN_MAP[team["name"]] = team["name_cn"]
-            # 同时注册去变音符版本（如 Türkiye → Turkiye）
-            normalized = unicodedata.normalize('NFKD', team["name"])
-            ascii_name = ''.join(c for c in normalized if not unicodedata.combining(c))
-            if ascii_name != team["name"]:
+            # 同时用 ascii 名注册（如 Turkiye → 土耳其）
+            ascii_name = team.get("name_ascii", "")
+            if ascii_name:
                 _NAME_CN_MAP[ascii_name] = team["name_cn"]
     return _NAME_CN_MAP
 
 
 def _enrich_matches(matches):
-    """给比赛数据添加中文队名"""
+    """给比赛数据添加中文队名（双重查找兜底）"""
     name_map = _build_name_map()
     for m in matches:
-        m["home_cn"] = name_map.get(m["home"], m["home"])
-        m["away_cn"] = name_map.get(m["away"], m["away"])
+        home = m.get("home", "")
+        away = m.get("away", "")
+        m["home_cn"] = name_map.get(home) or _find_cn_by_bruteforce(home) or home
+        m["away_cn"] = name_map.get(away) or _find_cn_by_bruteforce(away) or away
     return matches
+
+
+def _find_cn_by_bruteforce(name):
+    """暴力查找：去掉变音符逐队对比"""
+    import unicodedata
+    target = unicodedata.normalize('NFKD', name)
+    target = ''.join(c for c in target if not unicodedata.combining(c)).lower()
+    teams_data = load_teams_data()
+    for group_data in teams_data["groups"].values():
+        for team in group_data["teams"]:
+            n = unicodedata.normalize('NFKD', team["name"])
+            n = ''.join(c for c in n if not unicodedata.combining(c)).lower()
+            if n == target:
+                return team["name_cn"]
+    return None
 
 
 def get_all_teams_list():
