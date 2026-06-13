@@ -1,0 +1,580 @@
+{
+  "groups": {
+    "A": {
+      "teams": [
+        {
+          "name": "Mexico",
+          "name_cn": "墨西哥",
+          "fifa_ranking": 14,
+          "elo_rating": 1820,
+          "strength": 7,
+          "key_players": ["Julián Quiñones", "Raúl Jiménez", "Edson Álvarez", "César Montes"],
+          "coach": "Javier Aguirre",
+          "style": "技术流+主场气势，边路速度快",
+          "recent_form": "热身赛3胜1平，揭幕战2-0南非"
+        },
+        {
+          "name": "South Africa",
+          "name_cn": "南非",
+          "fifa_ranking": 58,
+          "elo_rating": 1480,
+          "strength": 4,
+          "key_players": ["Percy Tau", "Sphephelo Sithole", "Themba Zwane"],
+          "coach": "Hugo Broos",
+          "style": "身体对抗强，但技术粗糙",
+          "recent_form": "非洲区预选赛惊险出线，揭幕战0-2负墨西哥"
+        },
+        {
+          "name": "South Korea",
+          "name_cn": "韩国",
+          "fifa_ranking": 23,
+          "elo_rating": 1720,
+          "strength": 6,
+          "key_players": ["Son Heung-min", "Hwang In-beom", "Kim Min-jae", "Oh Hyeon-gyu"],
+          "coach": "Hong Myung-bo",
+          "style": "跑动积极，孙兴慜单点爆破，定位球有威胁",
+          "recent_form": "首轮2-1逆转捷克"
+        },
+        {
+          "name": "Czech Republic",
+          "name_cn": "捷克",
+          "fifa_ranking": 36,
+          "elo_rating": 1630,
+          "strength": 5,
+          "key_players": ["Ladislav Krejčí", "Tomáš Souček", "Patrik Schick"],
+          "coach": "Ivan Hašek",
+          "style": "身体强壮，高空球优势，中场硬朗",
+          "recent_form": "首轮1-2被韩国逆转"
+        }
+      ]
+    },
+    "B": {
+      "teams": [
+        {
+          "name": "Canada",
+          "name_cn": "加拿大",
+          "fifa_ranking": 38,
+          "elo_rating": 1620,
+          "strength": 5,
+          "key_players": ["Alphonso Davies", "Jonathan David", "Cyle Larin", "Stephen Eustáquio"],
+          "coach": "Jesse Marsch",
+          "style": "阿方索·戴维斯左路驱动，反击速度快",
+          "recent_form": "首轮1-1平波黑"
+        },
+        {
+          "name": "Bosnia and Herzegovina",
+          "name_cn": "波黑",
+          "fifa_ranking": 55,
+          "elo_rating": 1520,
+          "strength": 4,
+          "key_players": ["Edin Džeko", "Jovo Lukić", "Miralem Pjanić"],
+          "coach": "Sergej Barbarez",
+          "style": "老将哲科支点，经验丰富但年龄偏大",
+          "recent_form": "首轮1-1平加拿大"
+        },
+        {
+          "name": "Qatar",
+          "name_cn": "卡塔尔",
+          "fifa_ranking": 53,
+          "elo_rating": 1500,
+          "strength": 4,
+          "key_players": ["Akram Afif", "Almoez Ali", "Hassan Al-Haydos"],
+          "coach": "Tintín Márquez",
+          "style": "亚洲杯冠军班底，技术好但身体对抗弱",
+          "recent_form": "近10场正赛仅1胜，进攻端连续373分钟不进球"
+        },
+        {
+          "name": "Switzerland",
+          "name_cn": "瑞士",
+          "fifa_ranking": 19,
+          "elo_rating": 1780,
+          "strength": 6,
+          "key_players": ["Granit Xhaka", "Manuel Akanji", "Breel Embolo", "Gregor Kobel"],
+          "coach": "Murat Yakin",
+          "style": "防守稳固，中场控制力强，经验丰富",
+          "recent_form": "近6场4胜2平不败，防守端近10场5次零封"
+        }
+      ]
+    },
+    "C": {
+      "teams": [
+        {
+          "name": "Brazil",
+          "name_cn": "巴西",
+          "fifa_ranking": 5,
+          "elo_rating": 1950,
+          "strength": 9,
+          "key_players": ["Vinícius Jr.", "Rodrygo", "Endrick", "Alisson", "Marquinhos"],
+          "coach": "Carlo Ancelotti",
+          "style": "桑巴足球+安切洛蒂的实用主义，进攻多点开花",
+          "recent_form": "热身赛3连胜(3-1克罗地亚,6-2巴拿马,2-1埃及)，内马尔因伤缺阵"
+        },
+        {
+          "name": "Morocco",
+          "name_cn": "摩洛哥",
+          "fifa_ranking": 7,
+          "elo_rating": 1880,
+          "strength": 8,
+          "key_players": ["Achraf Hakimi", "Brahim Díaz", "Youssef En-Nesyri", "Noussair Mazraoui"],
+          "coach": "Walid Regragui",
+          "style": "防守反击犀利，2022四强班底，边路速度极快",
+          "recent_form": "2023年来45场国际赛仅负2场(33胜10平)，2023年友谊赛2-1胜巴西"
+        },
+        {
+          "name": "Haiti",
+          "name_cn": "海地",
+          "fifa_ranking": 83,
+          "elo_rating": 1380,
+          "strength": 3,
+          "key_players": ["Frantzdy Pierrot", "Duckens Nazon", "Carlens Arcus"],
+          "coach": "Sébastien Migné",
+          "style": "体能好、拼劲足，但战术纪律性差",
+          "recent_form": "时隔52年重返世界杯，经验严重不足"
+        },
+        {
+          "name": "Scotland",
+          "name_cn": "苏格兰",
+          "fifa_ranking": 43,
+          "elo_rating": 1600,
+          "strength": 5,
+          "key_players": ["Andy Robertson", "Scott McTominay", "John McGinn", "Kieran Tierney"],
+          "coach": "Steve Clarke",
+          "style": "英超式高强度压迫，罗伯逊左路传中威胁大",
+          "recent_form": "阔别28年重返世界杯，但世界杯历史12场未尝一胜"
+        }
+      ]
+    },
+    "D": {
+      "teams": [
+        {
+          "name": "United States",
+          "name_cn": "美国",
+          "fifa_ranking": 11,
+          "elo_rating": 1840,
+          "strength": 7,
+          "key_players": ["Christian Pulisic", "Folarin Balogun", "Giovanni Reyna", "Weston McKennie"],
+          "coach": "Mauricio Pochettino",
+          "style": "年轻有活力，跑动能力顶级，波切蒂诺体系",
+          "recent_form": "首轮4-1大胜巴拉圭，创队史世界杯最大胜利"
+        },
+        {
+          "name": "Paraguay",
+          "name_cn": "巴拉圭",
+          "fifa_ranking": 49,
+          "elo_rating": 1530,
+          "strength": 4,
+          "key_players": ["Miguel Almirón", "Julio Enciso", "Damian Bobadilla"],
+          "coach": "Daniel Garnero",
+          "style": "南美传统防守反击，但进攻创造力不足",
+          "recent_form": "首轮1-4惨败美国"
+        },
+        {
+          "name": "Australia",
+          "name_cn": "澳大利亚",
+          "fifa_ranking": 27,
+          "elo_rating": 1650,
+          "strength": 5,
+          "key_players": ["Mathew Ryan", "Harry Souttar", "Jackson Irvine", "Awer Mabil"],
+          "coach": "Graham Arnold",
+          "style": "身体对抗+高空轰炸，防守硬朗",
+          "recent_form": "亚洲区预选赛表现稳定，经验老道"
+        },
+        {
+          "name": "Türkiye",
+          "name_cn": "土耳其",
+          "fifa_ranking": 22,
+          "elo_rating": 1740,
+          "strength": 6,
+          "key_players": ["Hakan Çalhanoğlu", "Arda Güler", "Merih Demiral", "Kenan Yıldız"],
+          "coach": "Vincenzo Montella",
+          "style": "技术流+天赋溢出，居莱尔创造力强",
+          "recent_form": "时隔24年重返世界杯，预选赛进攻火力凶猛"
+        }
+      ]
+    },
+    "E": {
+      "teams": [
+        {
+          "name": "Germany",
+          "name_cn": "德国",
+          "fifa_ranking": 9,
+          "elo_rating": 1900,
+          "strength": 8,
+          "key_players": ["Jamal Musiala", "Florian Wirtz", "Joshua Kimmich", "Kai Havertz"],
+          "coach": "Julian Nagelsmann",
+          "style": "传控+高位逼抢，维尔茨+穆西亚拉双核驱动",
+          "recent_form": "近9场全胜，包括6-0斯洛伐克，场均2.7球"
+        },
+        {
+          "name": "Curaçao",
+          "name_cn": "库拉索",
+          "fifa_ranking": 82,
+          "elo_rating": 1350,
+          "strength": 2,
+          "key_players": ["Leandro Bacuna", "Juninho Bacuna", "Jurgen Locadia"],
+          "coach": "Dick Advocaat",
+          "style": "荷兰体系的加勒比版本，缺乏大赛经验",
+          "recent_form": "队史首次晋级世界杯，实力与强队差距悬殊"
+        },
+        {
+          "name": "Ivory Coast",
+          "name_cn": "科特迪瓦",
+          "fifa_ranking": 41,
+          "elo_rating": 1580,
+          "strength": 5,
+          "key_players": ["Sébastien Haller", "Franck Kessié", "Nicolas Pépé", "Evan Ndicka"],
+          "coach": "Emerse Faé",
+          "style": "身体天赋顶级，中场硬度足，非洲冠军底蕴",
+          "recent_form": "2024非洲杯冠军，状态正佳"
+        },
+        {
+          "name": "Ecuador",
+          "name_cn": "厄瓜多尔",
+          "fifa_ranking": 30,
+          "elo_rating": 1670,
+          "strength": 6,
+          "key_players": ["Moisés Caicedo", "Piero Hincapié", "Enner Valencia", "Willian Pacho"],
+          "coach": "Félix Sánchez",
+          "style": "年轻有活力，凯塞多中场核心，南美预选赛表现出色",
+          "recent_form": "南美预选赛排名前列出线，防守稳固"
+        }
+      ]
+    },
+    "F": {
+      "teams": [
+        {
+          "name": "Netherlands",
+          "name_cn": "荷兰",
+          "fifa_ranking": 6,
+          "elo_rating": 1920,
+          "strength": 8,
+          "key_players": ["Virgil van Dijk", "Frenkie de Jong", "Cody Gakpo", "Ryan Gravenberch"],
+          "coach": "Ronald Koeman",
+          "style": "全攻全守基因+现代控球，防线世界级",
+          "recent_form": "哈维·西蒙斯和斯豪滕因ACL伤缺，德佩腿筋有隐患"
+        },
+        {
+          "name": "Japan",
+          "name_cn": "日本",
+          "fifa_ranking": 15,
+          "elo_rating": 1810,
+          "strength": 7,
+          "key_players": ["Takefusa Kubo", "Kaoru Mitoma", "Wataru Endo", "Takehiro Tomiyasu"],
+          "coach": "Hajime Moriyasu",
+          "style": "技术流传控，防守极其稳固，团队执行力强",
+          "recent_form": "2026年16胜2平1负，进57球仅失3球，曾赢巴西和英格兰"
+        },
+        {
+          "name": "Sweden",
+          "name_cn": "瑞典",
+          "fifa_ranking": 24,
+          "elo_rating": 1710,
+          "strength": 6,
+          "key_players": ["Alexander Isak", "Dejan Kulusevski", "Victor Lindelöf", "Viktor Gyökeres"],
+          "coach": "Jon Dahl Tomasson",
+          "style": "北欧硬朗+伊萨克个人能力，反击高效",
+          "recent_form": "预选赛表现出色，锋线火力充足"
+        },
+        {
+          "name": "Tunisia",
+          "name_cn": "突尼斯",
+          "fifa_ranking": 32,
+          "elo_rating": 1630,
+          "strength": 5,
+          "key_players": ["Ellyes Skhiri", "Hannibal Mejbri", "Anis Ben Slimane"],
+          "coach": "Jalel Kadri",
+          "style": "北非技术流，防守纪律性好，但进攻创造力不足",
+          "recent_form": "非洲区预选赛稳定出线，但面对强队缺乏说服力"
+        }
+      ]
+    },
+    "G": {
+      "teams": [
+        {
+          "name": "Belgium",
+          "name_cn": "比利时",
+          "fifa_ranking": 4,
+          "elo_rating": 1930,
+          "strength": 8,
+          "key_players": ["Kevin De Bruyne", "Jérémy Doku", "Loïs Openda", "Amadou Onana"],
+          "coach": "Domenico Tedesco",
+          "style": "黄金一代末期，德布劳内仍世界级，年轻化转型中",
+          "recent_form": "预选赛不败出线，但防线老化是隐患"
+        },
+        {
+          "name": "Egypt",
+          "name_cn": "埃及",
+          "fifa_ranking": 34,
+          "elo_rating": 1640,
+          "strength": 5,
+          "key_players": ["Mohamed Salah", "Omar Marmoush", "Trézéguet"],
+          "coach": "Hossam Hassan",
+          "style": "萨拉赫单核驱动，反击犀利",
+          "recent_form": "非洲区预选赛强势出线，萨拉赫状态火热"
+        },
+        {
+          "name": "Iran",
+          "name_cn": "伊朗",
+          "fifa_ranking": 21,
+          "elo_rating": 1680,
+          "strength": 5,
+          "key_players": ["Mehdi Taremi", "Sardar Azmoun", "Alireza Jahanbakhsh"],
+          "coach": "Amir Ghalenoei",
+          "style": "亚洲顶级身体对抗，防守密集，塔雷米支点作用明显",
+          "recent_form": "亚洲区预选赛头名出线，防守稳固"
+        },
+        {
+          "name": "New Zealand",
+          "name_cn": "新西兰",
+          "fifa_ranking": 94,
+          "elo_rating": 1320,
+          "strength": 3,
+          "key_players": ["Chris Wood", "Sarpreet Singh", "Liberato Cacace"],
+          "coach": "Darren Bazeley",
+          "style": "英式长传冲吊，克里斯·伍德头球威胁",
+          "recent_form": "大洋洲区轻松出线，面对强队缺乏竞争力"
+        }
+      ]
+    },
+    "H": {
+      "teams": [
+        {
+          "name": "Spain",
+          "name_cn": "西班牙",
+          "fifa_ranking": 8,
+          "elo_rating": 1910,
+          "strength": 8,
+          "key_players": ["Lamine Yamal", "Pedri", "Rodri", "Nico Williams"],
+          "coach": "Luis de la Fuente",
+          "style": "极致传控+亚马尔边路爆破，欧洲杯冠军班底",
+          "recent_form": "2024欧洲杯冠军，预选赛全胜，进攻华丽"
+        },
+        {
+          "name": "Cape Verde",
+          "name_cn": "佛得角",
+          "fifa_ranking": 62,
+          "elo_rating": 1450,
+          "strength": 3,
+          "key_players": ["Ryan Mendes", "Jamiro Monteiro", "Bebé"],
+          "coach": "Bubista",
+          "style": "小国黑马，技术不错但整体实力有限",
+          "recent_form": "历史首次晋级世界杯"
+        },
+        {
+          "name": "Saudi Arabia",
+          "name_cn": "沙特",
+          "fifa_ranking": 51,
+          "elo_rating": 1510,
+          "strength": 4,
+          "key_players": ["Salem Al-Dawsari", "Firas Al-Buraikan", "Saud Abdulhamid"],
+          "coach": "Roberto Mancini",
+          "style": "曼奇尼调教下技术提升，但大赛经验不足",
+          "recent_form": "亚洲区预选赛表现不俗，2022曾爆冷胜阿根廷"
+        },
+        {
+          "name": "Uruguay",
+          "name_cn": "乌拉圭",
+          "fifa_ranking": 13,
+          "elo_rating": 1830,
+          "strength": 7,
+          "key_players": ["Federico Valverde", "Darwin Núñez", "Ronald Araújo", "Manuel Ugarte"],
+          "coach": "Marcelo Bielsa",
+          "style": "贝尔萨式疯狂逼抢，中场硬度+天赋兼具",
+          "recent_form": "南美预选赛表现出色，贝尔萨体系磨合到位"
+        }
+      ]
+    },
+    "I": {
+      "teams": [
+        {
+          "name": "France",
+          "name_cn": "法国",
+          "fifa_ranking": 2,
+          "elo_rating": 1980,
+          "strength": 9,
+          "key_players": ["Kylian Mbappé", "Aurélien Tchouaméni", "William Saliba", "Ousmane Dembélé"],
+          "coach": "Didier Deschamps",
+          "style": "姆巴佩单核+钢铁防线，德尚实用主义",
+          "recent_form": "2022决赛+2024欧洲杯四强，大赛表现最稳定"
+        },
+        {
+          "name": "Senegal",
+          "name_cn": "塞内加尔",
+          "fifa_ranking": 18,
+          "elo_rating": 1750,
+          "strength": 6,
+          "key_players": ["Sadio Mané", "Nicolas Jackson", "Kalidou Koulibaly", "Pape Matar Sarr"],
+          "coach": "Pape Thiaw",
+          "style": "非洲最强天赋，马内经验+杰克逊活力",
+          "recent_form": "非洲杯表现强势，阵容深度足"
+        },
+        {
+          "name": "Iraq",
+          "name_cn": "伊拉克",
+          "fifa_ranking": 60,
+          "elo_rating": 1470,
+          "strength": 4,
+          "key_players": ["Aymen Hussein", "Ali Jasim", "Ibrahim Bayesh"],
+          "coach": "Jesús Casas",
+          "style": "西亚硬朗风格，防守拼抢凶狠",
+          "recent_form": "时隔多年重返世界杯，亚洲区附加赛惊险出线"
+        },
+        {
+          "name": "Norway",
+          "name_cn": "挪威",
+          "fifa_ranking": 28,
+          "elo_rating": 1680,
+          "strength": 6,
+          "key_players": ["Erling Haaland", "Martin Ødegaard", "Antonio Nusa"],
+          "coach": "Ståle Solbakken",
+          "style": "哈兰德终结能力世界顶级+厄德高创造力",
+          "recent_form": "双星驱动，预选赛进攻火力全开"
+        }
+      ]
+    },
+    "J": {
+      "teams": [
+        {
+          "name": "Argentina",
+          "name_cn": "阿根廷",
+          "fifa_ranking": 1,
+          "elo_rating": 2000,
+          "strength": 9,
+          "key_players": ["Lionel Messi", "Julián Álvarez", "Enzo Fernández", "Emiliano Martínez"],
+          "coach": "Lionel Scaloni",
+          "style": "梅西最后一舞+2022冠军班底，控球+反击兼具",
+          "recent_form": "卫冕冠军，预选赛南美区头名"
+        },
+        {
+          "name": "Algeria",
+          "name_cn": "阿尔及利亚",
+          "fifa_ranking": 44,
+          "elo_rating": 1590,
+          "strength": 5,
+          "key_players": ["Riyad Mahrez", "Ismaël Bennacer", "Amine Gouiri"],
+          "coach": "Vladimir Petković",
+          "style": "北非技术流，马赫雷斯创造力核心",
+          "recent_form": "非洲区预选赛强势回归"
+        },
+        {
+          "name": "Austria",
+          "name_cn": "奥地利",
+          "fifa_ranking": 25,
+          "elo_rating": 1700,
+          "strength": 6,
+          "key_players": ["David Alaba", "Marcel Sabitzer", "Konrad Laimer", "Christoph Baumgartner"],
+          "coach": "Ralf Rangnick",
+          "style": "朗尼克式高压逼抢，整体性极强",
+          "recent_form": "欧洲杯表现亮眼，预选赛力压强敌出线"
+        },
+        {
+          "name": "Jordan",
+          "name_cn": "约旦",
+          "fifa_ranking": 68,
+          "elo_rating": 1420,
+          "strength": 3,
+          "key_players": ["Musa Al-Taamari", "Yazan Al-Naimat", "Ehsan Haddad"],
+          "coach": "Hussein Ammouta",
+          "style": "亚洲杯亚军班底，防守反击为主",
+          "recent_form": "2024亚洲杯亚军创造历史，首次进世界杯"
+        }
+      ]
+    },
+    "K": {
+      "teams": [
+        {
+          "name": "Portugal",
+          "name_cn": "葡萄牙",
+          "fifa_ranking": 3,
+          "elo_rating": 1960,
+          "strength": 8,
+          "key_players": ["Cristiano Ronaldo", "Bruno Fernandes", "Rafael Leão", "Rúben Dias"],
+          "coach": "Roberto Martínez",
+          "style": "C罗最后一届+黄金一代，进攻天赋溢出",
+          "recent_form": "预选赛全胜，进球如麻，但防守偶有漏洞"
+        },
+        {
+          "name": "DR Congo",
+          "name_cn": "民主刚果",
+          "fifa_ranking": 59,
+          "elo_rating": 1490,
+          "strength": 4,
+          "key_players": ["Chancel Mbemba", "Yoane Wissa", "Théo Bongonda"],
+          "coach": "Sébastien Desabre",
+          "style": "身体天赋好，非洲杯四强班底",
+          "recent_form": "非洲杯黑马，预选赛表现超出预期"
+        },
+        {
+          "name": "Uzbekistan",
+          "name_cn": "乌兹别克斯坦",
+          "fifa_ranking": 56,
+          "elo_rating": 1500,
+          "strength": 4,
+          "key_players": ["Eldor Shomurodov", "Jaloliddin Masharipov", "Abbosbek Fayzullaev"],
+          "coach": "Srečko Katanec",
+          "style": "中亚最强队，技术细腻，历史首次参赛",
+          "recent_form": "历史首次晋级世界杯"
+        },
+        {
+          "name": "Colombia",
+          "name_cn": "哥伦比亚",
+          "fifa_ranking": 10,
+          "elo_rating": 1860,
+          "strength": 7,
+          "key_players": ["Luis Díaz", "James Rodríguez", "Jhon Durán", "Davinson Sánchez"],
+          "coach": "Néstor Lorenzo",
+          "style": "技术+身体完美结合，路易斯·迪亚斯边路爆点",
+          "recent_form": "南美预选赛表现仅次于阿根廷，各项赛事20+不败"
+        }
+      ]
+    },
+    "L": {
+      "teams": [
+        {
+          "name": "England",
+          "name_cn": "英格兰",
+          "fifa_ranking": 13,
+          "elo_rating": 1850,
+          "strength": 8,
+          "key_players": ["Jude Bellingham", "Harry Kane", "Phil Foden", "Bukayo Saka"],
+          "coach": "Thomas Tuchel",
+          "style": "贝林厄姆中场核心，图赫尔战术体系，攻守均衡",
+          "recent_form": "2024欧洲杯亚军，图赫尔接任后3战全胜"
+        },
+        {
+          "name": "Croatia",
+          "name_cn": "克罗地亚",
+          "fifa_ranking": 16,
+          "elo_rating": 1780,
+          "strength": 7,
+          "key_players": ["Luka Modrić", "Joško Gvardiol", "Mateo Kovačić", "Andrej Kramarić"],
+          "coach": "Zlatko Dalić",
+          "style": "莫德里奇最后一舞，中场控制力世界级",
+          "recent_form": "2022季军+2024欧国联亚军，大赛基因"
+        },
+        {
+          "name": "Ghana",
+          "name_cn": "加纳",
+          "fifa_ranking": 64,
+          "elo_rating": 1480,
+          "strength": 4,
+          "key_players": ["Mohammed Kudus", "Thomas Partey", "Iñaki Williams"],
+          "coach": "Chris Hughton",
+          "style": "非洲传统强队，库杜斯个人能力强",
+          "recent_form": "非洲区预选赛惊险出线，年轻化重建中"
+        },
+        {
+          "name": "Panama",
+          "name_cn": "巴拿马",
+          "fifa_ranking": 45,
+          "elo_rating": 1520,
+          "strength": 4,
+          "key_players": ["Michael Murillo", "Adalberto Carrasquilla", "Ismael Díaz"],
+          "coach": "Thomas Christiansen",
+          "style": "中北美硬朗风格，防守密集",
+          "recent_form": "中北美区预选赛表现稳定，第二次晋级世界杯"
+        }
+      ]
+    }
+  }
+}
