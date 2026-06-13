@@ -9,6 +9,7 @@ from anthropic import Anthropic
 # API Key 从环境变量读取（兼容多种命名）
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
 ANTHROPIC_BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "")
+ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 
 _client = None
 
@@ -162,7 +163,7 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
 
     client = get_client()
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=ANTHROPIC_MODEL,
         max_tokens=1024 if not deep else 2048,
         system=system_prompt,
         messages=[{"role": "user", "content": user_prompt}],
