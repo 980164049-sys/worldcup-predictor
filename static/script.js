@@ -394,46 +394,36 @@ async function loadFullSchedule() {
 // ===== 展开/收起 reasoning =====
 function initReasoningToggles() {
     document.querySelectorAll('.reasoning-text').forEach(el => {
+        // 已有按钮就跳过
+        if (el.dataset.toggleReady) return;
+        el.dataset.toggleReady = '1';
+
         const fullText = el.textContent;
-        if (fullText.length <= 150) return; // 短文本不需要展开
+        if (fullText.length <= 120) return;
 
-        // 初始折叠
-        const truncated = fullText.substring(0, 150) + '... ';
+        // 检测是否真的被 clamp 截断（scrollHeight > clientHeight）
         el.classList.add('reasoning-collapsed');
-        el.textContent = fullText;
+        if (el.scrollHeight <= el.clientHeight + 2) {
+            el.classList.remove('reasoning-collapsed');
+            return; // 没溢出，不需要按钮
+        }
 
-        // 加按钮
         const btn = document.createElement('button');
         btn.className = 'reasoning-toggle';
         btn.textContent = '展开全文 ▼';
-        btn.onclick = function() {
+        btn.onclick = function(e) {
+            e.stopPropagation();
             if (el.classList.contains('reasoning-collapsed')) {
                 el.classList.remove('reasoning-collapsed');
-                el.classList.add('reasoning-expanded');
                 btn.textContent = '收起 ▲';
             } else {
                 el.classList.add('reasoning-collapsed');
-                el.classList.remove('reasoning-expanded');
                 btn.textContent = '展开全文 ▼';
             }
         };
         el.parentElement.appendChild(btn);
     });
 }
-
-// ===== auto-predict 渲染完后初始化 toggle =====
-const origFetchThen = (card) => {
-    const observer = new MutationObserver(() => {
-        initReasoningToggles();
-    });
-    document.querySelectorAll('.match-prediction').forEach(el => {
-        observer.observe(el, { childList: true, subtree: true });
-    });
-    // 一次性的批量初始化
-    setTimeout(initReasoningToggles, 500);
-    setTimeout(initReasoningToggles, 2000);
-    setTimeout(initReasoningToggles, 5000);
-};
 
 // ===== 工具函数 =====
 function escapeHtml(str) {
