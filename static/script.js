@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     ${scoreRange ? `<div style="text-align:center;font-size:13px;color:var(--text-dim);margin:4px 0;">📊 比分区间: ${escapeHtml(scoreRange)}</div>` : ''}
                     ${betting ? `<div class="safe-pick"><strong>🎯 投注建议：</strong> ${escapeHtml(betting)}</div>` : ''}
-                    <div class="pred-reasoning">${escapeHtml(data.reasoning).substring(0, 200)}...</div>
+                    <div class="pred-reasoning">${escapeHtml(cleanReasoning(data.reasoning)).substring(0, 200)}...</div>
                     ${data.upset_risks ? `
                     <div class="upset-risks">
                         <strong>⚠️ 翻车风险：</strong>
@@ -261,7 +261,7 @@ function renderPrediction(data, container) {
 
         <div class="reasoning-box">
             <h4>📊 AI 分析</h4>
-            <p>${escapeHtml(data.reasoning)}</p>
+            <p>${escapeHtml(cleanReasoning(data.reasoning))}</p>
             ${data.key_factors ? `
             <div class="key-factors">
                 ${data.key_factors.map(f => `<span class="key-factor-tag">${escapeHtml(f)}</span>`).join('')}
@@ -389,6 +389,21 @@ function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+}
+
+function cleanReasoning(text) {
+    // 如果 reasoning 是原始 JSON 代码，提取有用文字
+    if (!text) return '';
+    // 检测是否包含大段 JSON
+    if (text.includes('{') && text.includes('"score"') && text.length > 300) {
+        // 尝试去掉 JSON 部分，保留自然语言
+        let cleaned = text.replace(/\{[\s\S]*\}/g, '');
+        if (cleaned.trim().length > 20) return cleaned.trim().substring(0, 250);
+        // 如果去掉 JSON 后就没东西了，截取前半段
+        const jsonStart = text.indexOf('{"');
+        if (jsonStart > 0) return text.substring(0, jsonStart).trim().substring(0, 250);
+    }
+    return text;
 }
 
 // ===== 键盘快捷键 =====
