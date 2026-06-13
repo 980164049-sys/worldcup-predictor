@@ -1,36 +1,36 @@
 """
-AI 预测引擎 — 调用 Claude API 生成世界杯比赛预测
+AI 预测引擎 —— 全方位比赛因素分析，专为 2026 美加墨世界杯体彩参考优化
 """
 import json
 import os
 import re
 from anthropic import Anthropic
 
-# API Key 从环境变量读取（兼容多种命名）
+# ── 环境变量 ──────────────────────────────────────────
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
 ANTHROPIC_BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "")
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 
 _client = None
-
-# 预测缓存（同一场比赛不会重复调 API）
 _predict_cache = {}
 
+# ── 数据路径 ──────────────────────────────────────────
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+TEAMS_PATH = os.path.join(DATA_DIR, "teams.json")
+FACTORS_PATH = os.path.join(DATA_DIR, "match_factors.json")
 
-def _cache_key(home, away, context):
-    return f"{home.lower()}|{away.lower()}|{context.lower()}"
+
+def _load_json(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
+# ── 客户端 ────────────────────────────────────────────
 def get_client():
-    """延迟初始化 Anthropic 客户端"""
     global _client
     if _client is None:
         if not ANTHROPIC_API_KEY:
-            raise RuntimeError(
-                "请设置环境变量 ANTHROPIC_API_KEY 或 ANTHROPIC_AUTH_TOKEN\n"
-                "Windows: set ANTHROPIC_API_KEY=your-key\n"
-                "或创建 .env 文件放在项目目录"
-            )
+            raise RuntimeError("请设置环境变量 ANTHROPIC_API_KEY")
         kwargs = {"api_key": ANTHROPIC_API_KEY}
         if ANTHROPIC_BASE_URL:
             kwargs["base_url"] = ANTHROPIC_BASE_URL
@@ -38,21 +38,97 @@ def get_client():
     return _client
 
 
+# ── 数据查询 ──────────────────────────────────────────
 def load_teams_data():
-    """加载球队数据库"""
-    teams_path = os.path.join(os.path.dirname(__file__), "data", "teams.json")
-    with open(teams_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return _load_json(TEAMS_PATH)
 
 
-def find_team(team_name, teams_data):
-    """根据名称查找球队信息"""
+def load_factors():
+    return _load_json(FACTORS_PATH)
+
+
+def find_team(team_name, teams_data=None):
+    if teams_data is None:
+        teams_data = load_teams_data()
     for group_data in teams_data["groups"].values():
         for team in group_data["teams"]:
-            if team["name"].lower() == team_name.lower() or \
-               team["name_cn"] == team_name:
+            if team["name"].lower() == team_name.lower() or team["name_cn"] == team_name:
                 return team
     return None
+
+
+def _cache_key(home, away, context):
+    return f"{home.lower()}|{away.lower()}|{context.lower()}"
+
+
+# ── 比赛因素收集 ──────────────────────────────────────
+def collect_match_factors(home, away, match_info):
+    """
+    收集一场比赛的所有相关因素，返回结构化的上下文文本。
+    match_info 应包含: venue, group, round_num, date_cn 等
+    """
+    factors = load_factors()
+    parts = []
+
+    # 1. 场馆 & 环境
+    venue_name = match_info.get("venue", "")
+    venue = factors["venues"].get(venue_name)
+    if venue:
+        parts.append(f"""【比赛场馆与环境】
+- 场馆：{venue_name}（{venue['city']}，{venue['country']}）
+- 海拔：{venue['altitude_m']}米{'（⚠️ 高海拔！客队体能消耗显著增加，球速偏快）' if venue['altitude_m'] > 1500 else ''}
+- 类型：{'室内空调恒温' if venue['indoor'] else '室外'}
+- 草皮：{venue['pitch']}{'（人工草皮球速快，不习惯的球队受影响）' if '人工' in venue['pitch'] else ''}
+- 容量：{venue['capacity']}人
+- 6月天气：{venue['june_weather']}
+""")
+
+    # 2. 赛程 / 疲劳度
+    fatigue = factors.get("schedule_fatigue", {})
+    round_num = match_info.get("round_num", 1)
+    if round_num == 1:
+        parts.append("【赛程状态】小组赛第1轮，双方均无疲劳积累，体能充沛。\n")
+    elif round_num == 2:
+        parts.append("【赛程状态】小组赛第2轮，休息3-4天。首轮消耗大的球队可能状态下滑。\n")
+    else:
+        parts.append("【赛程状态】小组赛第3轮（末轮），出线形势将极大影响比赛心态和战术选择。\n")
+
+    # 3. H2H 历史交锋
+    h2h_key = f"{home['name']} vs {away['name']}"
+    h2h_rev = f"{away['name']} vs {home['name']}"
+    h2h = factors.get("head_to_head", {})
+    h2h_text = h2h.get(h2h_key) or h2h.get(h2h_rev)
+    if h2h_text:
+        parts.append(f"【历史交锋】{h2h_text}\n")
+
+    # 4. 伤病
+    injuries = factors.get("key_injuries", {})
+    for team_name in [home["name"], away["name"]]:
+        inj = injuries.get(team_name)
+        if inj:
+            parts.append(f"【{team_name}伤病】{inj}\n")
+
+    # 5. 东道主优势
+    host_adv = factors.get("host_advantage", {})
+    for team_name, factor_key in [(home["name"], home["name"].lower()),
+                                    (away["name"], away["name"].lower())]:
+        host_info = host_adv.get(factor_key)
+        if host_info:
+            parts.append(f"【东道主优势】{team_name}是2026联合东道主！{host_info['reason']}\n")
+
+    # 6. 赛事背景
+    fmt = factors.get("tournament_format", {})
+    parts.append(f"""【赛事背景】
+- 2026美加墨世界杯，48队12组，每组前2+8个最佳第三晋级32强
+- 这意味着小组第三仍有出线可能，弱队不会提前放弃
+- 净胜球极其重要，强队领先时不会放松
+""")
+
+    # 7. 裁判趋势
+    ref = factors.get("referee_profile", {})
+    parts.append(f"【裁判尺度】{ref.get('trend', '')}\n")
+
+    return "\n".join(parts)
 
 
 def get_team_recent_form(team_name):
@@ -60,26 +136,83 @@ def get_team_recent_form(team_name):
     from data.fetcher import get_team_matches
     matches = get_team_matches(team_name, limit=5)
     if not matches:
-        return "暂无近期比赛数据"
+        return "暂无世界杯比赛数据"
     lines = []
     for m in matches:
         result = m.get("result", "?")
-        lines.append(f"{m['date_cn']} {m['home']} {result} {m['away']} (世界杯小组赛)")
+        lines.append(f"{m['date_cn']} {m['home']} {result} {m['away']}（世界杯）")
     return "\n".join(lines)
 
 
-def predict_match(home_team, away_team, match_context="", deep=False, conservative=False):
+# ── 系统提示词（包含完整2026世界杯知识） ──────────────
+SYSTEM_PROMPT = """你是一位为体育彩票玩家提供专业分析的世界杯预测专家。
+你深知用户的预测将直接影响其投注决策，因此必须极度审慎、客观。
+
+=== 2026美加墨世界杯 — 你必须完全掌握的背景知识 ===
+
+【赛事信息】
+- 名称：2026 FIFA World Cup
+- 主办国：美国、加拿大、墨西哥（三国联合主办，首次）
+- 参赛队：48支（首次扩军）
+- 比赛时间：2026年6月12日-7月19日（北京时间）
+- 揭幕战：墨西哥 2-0 南非（已完赛）
+- 卫冕冠军：阿根廷（非东道主）
+
+【绝对禁止的错误】（一旦犯这些低级错误，预测就毫无价值）
+✗ 不要说卡塔尔是东道主——卡塔尔是2022年东道主，2026年只是B组普通参赛队
+✗ 不要说阿根廷主场作战——阿根廷不是东道主
+✗ 不要把2022年的任何信息当作2026年的事实
+✗ 不要编造不存在的球员或教练
+✗ 不要假设欧洲球队天然优势——本届在美洲举行，欧洲球队需要跨时区适应
+
+【预测时必须综合考虑的因素】（每一项都可能影响比分）
+1. 场馆环境：海拔(>1500m极大影响客队)、室内/室外、草皮类型、6月天气
+2. 东道主优势：美/加/墨三国有主场球迷+零时差+零旅行
+3. 伤病影响：核心球员缺阵的战术连锁反应
+4. H2H交锋史：历史数据暗示的心理和战术匹配度
+5. 赛程阶段：小组第1轮无疲劳 / 第2轮有消耗 / 第3轮涉及出线
+6. 战术相克：高位逼抢 vs 传控、身体流 vs 技术流等
+7. 裁判趋势：VAR介入增多，点球判罚率上升
+8. 48队赛制：小组第三也有机会，净胜球极度重要
+9. 球员心理：梅西/C罗最后一届 = 超常发挥可能
+10. 跨洲旅行：从欧洲到美国-6小时时差，亚洲到美国-15小时
+
+【你的预测必须输出以下JSON格式，缺一不可】
+{
+  "score": "X-Y（X是主队进球，Y是客队进球，必须和winner逻辑一致）",
+  "winner": "主队英文名 或 客队英文名 或 Draw",
+  "probability": {"home": 0.XX, "draw": 0.XX, "away": 0.XX},
+  "confidence": "high/medium/low",
+  "reasoning": "300字以内的综合分析，必须引用具体的场馆、伤病、H2H等上文提供的信息",
+  "betting_angle": "针对体彩玩家的投注建议，如：巴西-1.5、小于2.5球、双方进球-是 等",
+  "key_factors": ["因素1", "因素2", "因素3"],
+  "upset_risks": ["翻车风险1", "风险2", "风险3"],
+  "score_range": "最可能比分区间，如 1-0 至 2-1"
+}
+
+⚠️ score和winner的强制一致性：
+- 主队进球多 → winner MUST = 主队名
+- 客队进球多 → winner MUST = 客队名
+- 相同 → winner MUST = "Draw"
+绝对不允许 score 是 1-0 但 winner 写客队这种低级矛盾！"""
+
+
+# ── 主预测函数 ────────────────────────────────────────
+def predict_match(home_team, away_team, match_context="", deep=False, conservative=False,
+                  match_info=None):
     """
-    预测一场比赛
+    全方位因素预测一场比赛
 
     Args:
-        home_team: 主队名称（英文或中文）
-        away_team: 客队名称
-        match_context: 比赛背景（如"小组赛C组第1轮"）
+        home_team: 主队名
+        away_team: 客队名
+        match_context: 简短背景（如"小组赛C组第1轮"）
         deep: 是否深度分析
+        conservative: 是否谨慎购彩模式（默认开启）
+        match_info: dict, 包含 venue/group/round_num/date_cn 等
 
     Returns:
-        dict: {winner, score, probability: {home, draw, away}, reasoning, key_players}
+        dict: 完整预测结果
     """
     teams_data = load_teams_data()
 
@@ -96,128 +229,102 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
     if key in _predict_cache:
         return _predict_cache[key]
 
-    # 获取近期战绩
+    # 近期战绩
     home_form = get_team_recent_form(home["name"])
     away_form = get_team_recent_form(away["name"])
 
-    # 构建 Prompt
-    system_prompt = """你是一位资深足球分析师和风险评估专家，精通战术分析和数据建模。
-你的任务是对2026年美加墨世界杯比赛做出专业、审慎的预测。
+    # 收集所有比赛因素
+    if match_info is None:
+        match_info = {}
+    match_info.setdefault("group", "")
+    match_info.setdefault("round_num", 1)
+    match_info.setdefault("venue", "")
 
-=== 赛事基本信息（必须牢记，不得混淆）===
-- 赛事：2026 FIFA World Cup（第23届）
-- 主办国：美国、加拿大、墨西哥（三国联合主办）
-- 时间：2026年6月11日 - 7月19日
-- 参赛队：48支（首次扩军）
-- 揭幕战：墨西哥 vs 南非（6月12日北京时间03:00，墨西哥2-0胜）
-- 上届冠军：阿根廷（2022年卡塔尔世界杯）
+    factors_text = collect_match_factors(home, away, match_info)
 
-=== 常见错误纠正（绝对不要说）===
-- "卡塔尔是东道主" → 错！卡塔尔是2022年东道主，2026年只是普通B组参赛队
-- "阿根廷是卫冕冠军主场作战" → 错！阿根廷不是东道主
-- "这是揭幕战" → 错！揭幕战已打完
-- 不要把任何2022年的"东道主优势"套用到2026年
-
-=== 2026年各队真实身份 ===
-- 东道主：墨西哥、加拿大、美国（三队享有主场优势）
-- 卫冕冠军：阿根廷（非东道主）
-- 时隔多年重返：海地(52年)、土耳其(24年)、苏格兰(28年)、新西兰等
-- 首次参赛：库拉索、佛得角、乌兹别克斯坦
-
-=== 预测须知 ===
-- 美国、加拿大、墨西哥有主场之利，应适度加分
-- 欧洲球队跨时区作战可能受影响
-- 48队赛制下小组第三也有出线机会，弱队更有动力拼
-
-请严格按以下 JSON 格式输出（不要包含其他文字）：
-{
-  "winner": "主队名称 或 客队名称 或 Draw",
-  "score": "主队进球数-客队进球数（如 2-1 表示主队进2球客队进1球）",
-  "probability": {
-    "home": 0.XX,
-    "draw": 0.XX,
-    "away": 0.XX
-  },
-  "confidence": "high / medium / low",
-  "reasoning": "200字以内的分析理由",
-  "key_factors": ["因素1", "因素2", "因素3"],
-  "upset_risks": ["可能导致翻车的风险1", "风险2"],
-  "safe_pick": "最稳妥的投注方向建议，如：让球、大小球、双方进球等，一句话"
-}
-
-⚠️ 重要：score 和 winner 必须自洽！
-- 如果 winner 是主队，score 必须是主队进球 > 客队进球（如 2-0、2-1）
-- 如果 winner 是客队，score 必须是客队进球 > 主队进球（如 0-1、1-2）
-- 如果 winner 是 Draw，score 必须两边相等（如 1-1、0-0）"""
-
-    cautious_instruction = ""
+    # ── 组装用户提示词 ──
+    cautious_note = ""
     if conservative:
-        cautious_instruction = """
-⚠️ 这是用于体育彩票参考的谨慎预测，请格外注意：
-
-1. **保守评分**：预测比分要偏保守，缩小分差。即使强队打弱队，也不要预测超过 3-0。
-2. **风险评估**：必须列出至少 3 个可能导致预测翻车的具体风险因素。
-3. **置信度如实评估**：大多数比赛的 confidence 应该是 "medium" 或 "low"，只有实力悬殊极大时才给 "high"。
-4. **安全建议**：safe_pick 给出最保守的投注方向（如"双方进球-否"、"总进球小于2.5"、"弱队+2.5"等），而非直接赌胜负。
-5. **强调不确定性**：reasoning 中必须包含一句关于足球比赛固有不确定性的提醒。
+        cautious_note = """
+⚠️ 这是用于体育彩票参考的预测，请格外注意：
+- 比分预测偏保守，强队打弱队也不要超过3-0
+- 必须列出至少3条可能导致预测翻车的具体风险
+- confidence 绝大多数比赛应该是 medium 或 low
+- betting_angle 必须给出具体的投注方向建议（如"小于2.5球"、"巴西-1.5"等）
 """
 
-    depth_instruction = ""
+    depth_note = ""
     if deep:
-        depth_instruction = """
-请进行深度分析，reasoning 扩展到 500 字以上，包括：
-- 双方战术体系的详细对比
-- 三条线（防线、中场、锋线）的人员对位分析
-- 定位球攻防分析
-- 体能和赛程影响
-- 关键替补球员可能带来的变数
+        depth_note = """
+请进行深度分析，reasoning扩展到500字以上，覆盖：
+- 战术体系的每一层对位
+- 定位球攻防
+- 替补席深度对比
+- 体能储备和赛程影响
 """
 
-    user_prompt = f"""请预测以下世界杯比赛：
+    user_prompt = f"""请基于以下完整信息，对这场2026美加墨世界杯比赛做出专业预测。
 
-【比赛信息】
-主队：{home['name']} ({home['name_cn']})
-客队：{away['name']} ({away['name_cn']})
-比赛背景：{match_context or '2026世界杯小组赛'}
-主队 FIFA 排名：第 {home['fifa_ranking']} 位
-客队 FIFA 排名：第 {away['fifa_ranking']} 位
+═══════════════════════════════════
+              比赛信息
+═══════════════════════════════════
+主队：{home['name']} ({home['name_cn']})  FIFA第{home['fifa_ranking']}位
+客队：{away['name']} ({away['name_cn']})  FIFA第{away['fifa_ranking']}位
+背景：{match_context or '2026世界杯小组赛'}
 
-【主队情报】
+═══════════════════════════════════
+              主队情报
+═══════════════════════════════════
 教练：{home['coach']}
 核心球员：{', '.join(home['key_players'])}
-球队风格：{home['style']}
-近期战绩：{home['recent_form']}
+战术风格：{home['style']}
+近期状态：{home['recent_form']}
+{home.get('notes', '')}
 
-【客队情报】
+═══════════════════════════════════
+              客队情报
+═══════════════════════════════════
 教练：{away['coach']}
 核心球员：{', '.join(away['key_players'])}
-球队风格：{away['style']}
-近期战绩：{away['recent_form']}
+战术风格：{away['style']}
+近期状态：{away['recent_form']}
+{away.get('notes', '')}
 
-【主队近期比赛】
+═══════════════════════════════════
+            全方位比赛因素
+═══════════════════════════════════
+{factors_text}
+
+═══════════════════════════════════
+              近期战绩
+═══════════════════════════════════
+【{home['name']}】
 {home_form}
 
-【客队近期比赛】
+【{away['name']}】
 {away_form}
-{cautious_instruction}
-{depth_instruction}
-请给出你的专业预测。"""
+{cautious_note}
+{depth_note}
 
+请给出你的专业预测（严格按JSON格式输出，score和winner必须逻辑一致）。"""
+
+    # ── 调用 AI ──
     client = get_client()
     response = client.messages.create(
         model=ANTHROPIC_MODEL,
-        max_tokens=1024 if not deep else 2048,
-        system=system_prompt,
+        max_tokens=1500 if not deep else 2500,
+        system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_prompt}],
         temperature=0.1,
     )
 
-    # 解析返回的 JSON（过滤可能的 thinking block）
+    # 提取文本
     text_blocks = [b for b in response.content if b.type == "text"]
     if not text_blocks:
         raise RuntimeError("AI 未返回文本内容，请重试")
     text = text_blocks[0].text.strip()
-    # 处理可能的 markdown 代码块包裹
+
+    # 解析 JSON
     if "```json" in text:
         text = text.split("```json")[1].split("```")[0].strip()
     elif "```" in text:
@@ -226,139 +333,91 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
     try:
         prediction = json.loads(text)
     except json.JSONDecodeError:
-        # 降级：尝试用正则提取
         prediction = _fallback_parse(text)
 
     # 补充球队信息
     prediction["home_team"] = {"name": home["name"], "name_cn": home["name_cn"]}
     prediction["away_team"] = {"name": away["name"], "name_cn": away["name_cn"]}
 
-    # 校验 score 和 winner 一致性
-    prediction = _validate_prediction(prediction, home["name"], away["name"])
+    # 校验 score-winner 一致性（以比分为准）
+    prediction = _validate_score_winner(prediction, home["name"], away["name"])
 
-    # 存入缓存
+    # 缓存
     _predict_cache[key] = prediction
-
     return prediction
 
 
-def _validate_prediction(pred, home_name, away_name):
-    """修正 AI 输出中 score 和 winner 自相矛盾的情况"""
-    score = pred.get("score", "?-?")
+def _validate_score_winner(pred, home_name, away_name):
+    """修正score和winner不一致的情况"""
+    score = pred.get("score", "")
     winner = pred.get("winner", "")
-
     try:
-        parts = score.split("-")
-        home_goals = int(parts[0].strip())
-        away_goals = int(parts[1].strip())
-    except (ValueError, IndexError):
-        return pred  # 无法解析，保持不变
+        hg, ag = map(int, score.strip().split("-"))
+    except:
+        return pred
 
-    # 判断 score 暗示的胜者
-    if home_goals > away_goals:
-        score_winner = home_name
-    elif away_goals > home_goals:
-        score_winner = away_name
+    if hg > ag:
+        correct = home_name
+    elif ag > hg:
+        correct = away_name
     else:
-        score_winner = "Draw"
+        correct = "Draw"
 
-    # 如果 winner 和 score 不一致，以 score 为准修正 winner
-    # （比分比文字更可靠，因为比分是数字不容易错）
-    if (score_winner == home_name and winner not in (home_name, home_name.lower())) or \
-       (score_winner == away_name and winner not in (away_name, away_name.lower())) or \
-       (score_winner == "Draw" and winner.lower() != "draw"):
-        pred["winner"] = score_winner
+    if (correct == home_name and winner != home_name) or \
+       (correct == away_name and winner != away_name) or \
+       (correct == "Draw" and winner.lower() != "draw"):
+        pred["winner"] = correct
 
     return pred
 
 
 def _fallback_parse(text):
-    """JSON 解析失败时的降级提取"""
-    result = {
+    return {
         "winner": "Unknown",
         "score": "?-?",
         "probability": {"home": 0.33, "draw": 0.34, "away": 0.33},
+        "confidence": "low",
         "reasoning": text[:300],
-        "key_factors": []
+        "betting_angle": "数据不足以给出建议",
+        "key_factors": [],
+        "upset_risks": ["AI返回格式异常，无法分析具体风险"],
+        "score_range": "?-? 至 ?-?"
     }
-
-    # 尝试提取比分
-    score_match = re.search(r'(\d+)\s*[-:]\s*(\d+)', text)
-    if score_match:
-        result["score"] = f"{score_match.group(1)}-{score_match.group(2)}"
-
-    # 尝试提取胜者
-    for pattern, winner in [
-        (r'winner["\s:]+(\w+)', None),
-        (r'(主队|home)\s*(胜|赢|win)', "home"),
-        (r'(客队|away)\s*(胜|赢|win)', "away"),
-        (r'(平|draw|tie)', "Draw"),
-    ]:
-        if re.search(pattern, text, re.IGNORECASE):
-            if winner:
-                result["winner"] = winner
-            break
-
-    return result
 
 
 def quick_predict(home_team, away_team, match_context=""):
-    """
-    快速预测（简化版），不调用 AI，纯基于数据计算
-    作为 AI 预测的参考基线
-    """
+    """快速数据模型预测（不调AI）"""
     teams_data = load_teams_data()
     home = find_team(home_team, teams_data)
     away = find_team(away_team, teams_data)
-
     if not home or not away:
         raise ValueError(f"未找到球队: {home_team if not home else away_team}")
 
-    # 基于 FIFA 排名和 ELO 的简单模型
-    rank_diff = away["fifa_ranking"] - home["fifa_ranking"]
     elo_diff = home["elo_rating"] - away["elo_rating"]
-
-    # 基础概率
-    home_adv = 0.05  # 主场优势（本届在美国）
-    elo_prob = 1 / (1 + 10 ** (-elo_diff / 400))
-
-    home_prob = round(elo_prob + home_adv, 2)
-    draw_prob = round(0.30 - abs(elo_diff) / 2000, 2)
+    home_prob = round(1 / (1 + 10 ** (-elo_diff / 400)) + 0.05, 2)
+    draw_prob = round(max(0.2, 0.30 - abs(elo_diff) / 2000), 2)
     away_prob = round(1 - home_prob - draw_prob, 2)
 
-    # 归一化
-    total = home_prob + draw_prob + away_prob
-    home_prob = round(home_prob / total, 2)
-    draw_prob = round(draw_prob / total, 2)
-    away_prob = round(1 - home_prob - draw_prob, 2)
+    home_goals = round(max(0, min(6, 0.8 + home["strength"] * 0.15 + elo_diff / 600)))
+    away_goals = round(max(0, min(6, 0.5 + away["strength"] * 0.10 - elo_diff / 600)))
 
-    # 预计进球 (校准后公式，使比分在合理足球范围内)
-    home_goals_raw = 0.8 + home["strength"] * 0.15 + elo_diff / 600
-    away_goals_raw = 0.5 + away["strength"] * 0.10 - elo_diff / 600
-    home_goals = round(max(0, min(6, home_goals_raw)))
-    away_goals = round(max(0, min(6, away_goals_raw)))
-
-    if home_prob > away_prob and home_prob > draw_prob:
+    if home_goals > away_goals:
         winner = home["name"]
-    elif away_prob > home_prob and away_prob > draw_prob:
+    elif away_goals > home_goals:
         winner = away["name"]
     else:
         winner = "Draw"
 
     return {
         "winner": winner,
-        "score": f"{int(round(home_goals))}-{int(round(away_goals))}",
-        "probability": {
-            "home": home_prob,
-            "draw": draw_prob,
-            "away": away_prob
-        },
-        "reasoning": f"基于FIFA排名(差{rank_diff}位)和ELO评分(差{elo_diff}分)的数据模型预测。仅供参考。",
-        "key_factors": [
-            f"FIFA排名差距: {abs(rank_diff)}位",
-            f"ELO评分差距: {abs(elo_diff)}分",
-            f"实力评分: {home['name']}={home['strength']}, {away['name']}={away['strength']}"
-        ],
+        "score": f"{home_goals}-{away_goals}",
+        "probability": {"home": home_prob, "draw": draw_prob, "away": away_prob},
+        "confidence": "low" if abs(elo_diff) < 100 else "medium",
+        "reasoning": f"基于数据模型（ELO差{elo_diff}分）。仅供参考，建议使用AI预测。",
+        "betting_angle": "",
+        "key_factors": [f"FIFA排名差: {abs(home['fifa_ranking'] - away['fifa_ranking'])}位"],
+        "upset_risks": ["数据模型无法评估具体风险，建议使用AI预测"],
+        "score_range": f"{max(0,home_goals-1)}-{max(0,away_goals-1)} 至 {home_goals+1}-{away_goals+1}",
         "home_team": {"name": home["name"], "name_cn": home["name_cn"]},
-        "away_team": {"name": away["name"], "name_cn": away["name_cn"]}
+        "away_team": {"name": away["name"], "name_cn": away["name_cn"]},
     }
