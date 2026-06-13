@@ -22,6 +22,31 @@ app = Flask(__name__)
 
 CST = timezone(timedelta(hours=8))
 
+# 持久化预测缓存
+_PRED_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "predictions_cache.json")
+
+
+def _load_pred_cache():
+    if os.path.exists(_PRED_CACHE_FILE):
+        try:
+            with open(_PRED_CACHE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
+    return {}
+
+
+def _save_pred_cache(data):
+    try:
+        os.makedirs(os.path.dirname(_PRED_CACHE_FILE), exist_ok=True)
+        with open(_PRED_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"[Cache] Saved {len(data)} entries to {_PRED_CACHE_FILE}", flush=True)
+    except Exception as e:
+        print(f"[Cache] Save error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+
 # 球队英文名→中文名映射（启动时构建）
 _NAME_CN_MAP = {}
 
@@ -126,6 +151,12 @@ def api_predict():
         return jsonify({"error": "不能选同一支球队"}), 400
 
     try:
+        # 检查文件缓存
+        cache_key = f"{home_team.lower()}|{away_team.lower()}|{match_context.lower()}"
+        pred_cache = _load_pred_cache()
+        if cache_key in pred_cache:
+            return jsonify(pred_cache[cache_key])
+
         match_info = data.get("match_info", {})
         if use_ai:
             prediction = predict_match(home_team, away_team, match_context,
@@ -133,6 +164,10 @@ def api_predict():
                                        match_info=match_info)
         else:
             prediction = quick_predict(home_team, away_team, match_context)
+
+        # 保存到文件缓存
+        pred_cache[cache_key] = prediction
+        _save_pred_cache(pred_cache)
 
         return jsonify(prediction)
     except ValueError as e:
