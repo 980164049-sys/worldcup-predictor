@@ -47,12 +47,26 @@ def load_factors():
     return _load_json(FACTORS_PATH)
 
 
+def _normalize(s):
+    """去除变音符号并小写，用于模糊匹配"""
+    import unicodedata
+    s = unicodedata.normalize('NFKD', s)
+    return ''.join(c for c in s if not unicodedata.combining(c)).lower()
+
+
 def find_team(team_name, teams_data=None):
     if teams_data is None:
         teams_data = load_teams_data()
+    name_lower = team_name.lower()
+    name_normalized = _normalize(team_name)
     for group_data in teams_data["groups"].values():
         for team in group_data["teams"]:
-            if team["name"].lower() == team_name.lower() or team["name_cn"] == team_name:
+            if team["name"].lower() == name_lower or team["name_cn"] == team_name:
+                return team
+    # 模糊匹配兜底：无视变音符号
+    for group_data in teams_data["groups"].values():
+        for team in group_data["teams"]:
+            if _normalize(team["name"]) == name_normalized:
                 return team
     return None
 
