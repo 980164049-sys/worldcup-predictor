@@ -1,0 +1,194 @@
+{
+  "_meta": {
+    "description": "2026美加墨世界杯 — 完整比赛因素数据库，专门用于体彩预测参考",
+    "factors_covered": [
+      "场馆(海拔/室内外/容量/草皮/6月天气)",
+      "赛程疲劳度(休息天数/旅行距离)",
+      "东道主优势量化",
+      "历史交锋(H2H)",
+      "关键伤停",
+      "比赛阶段重要性(小组第几轮)",
+      "裁判尺度倾向",
+      "球队世界杯历史经验"
+    ]
+  },
+
+  "venues": {
+    "Estadio Azteca, Mexico City": {
+      "city": "墨西哥城", "country": "Mexico", "host": true,
+      "altitude_m": 2250, "indoor": false, "capacity": 87000,
+      "pitch": "天然草皮",
+      "june_weather": "海拔2250米，空气稀薄，球速偏快，客队体能消耗+15%。下午可能有雷阵雨",
+      "note": "本届最高海拔球场，客队极不适应"
+    },
+    "Estadio Akron, Guadalajara": {
+      "city": "瓜达拉哈拉", "country": "Mexico", "host": true,
+      "altitude_m": 1566, "indoor": false, "capacity": 48000,
+      "pitch": "天然草皮",
+      "june_weather": "海拔1566米，6月炎热干燥，气温30-35°C"
+    },
+    "Estadio BBVA, Monterrey": {
+      "city": "蒙特雷", "country": "Mexico", "host": true,
+      "altitude_m": 537, "indoor": false, "capacity": 53500,
+      "pitch": "天然草皮",
+      "june_weather": "6月酷热，气温可达35-40°C，湿度低"
+    },
+    "BMO Field, Toronto": {
+      "city": "多伦多", "country": "Canada", "host": true,
+      "altitude_m": 76, "indoor": false, "capacity": 45000,
+      "pitch": "混合草皮",
+      "june_weather": "6月宜人，15-25°C，偶有降雨，风可能影响长传"
+    },
+    "BC Place, Vancouver": {
+      "city": "温哥华", "country": "Canada", "host": true,
+      "altitude_m": 0, "indoor": true, "capacity": 54500,
+      "pitch": "人工草皮",
+      "june_weather": "室内可控，人工草皮球速偏快，对不习惯的球队有影响"
+    },
+    "SoFi Stadium, Los Angeles": {
+      "city": "洛杉矶", "country": "USA", "host": true,
+      "altitude_m": 30, "indoor": true, "capacity": 70000,
+      "pitch": "人工草皮",
+      "june_weather": "室内恒温22°C，完美比赛条件"
+    },
+    "Levi's Stadium, Santa Clara": {
+      "city": "旧金山湾区", "country": "USA", "host": true,
+      "altitude_m": 5, "indoor": false, "capacity": 68500,
+      "pitch": "天然草皮",
+      "june_weather": "6月凉爽，15-22°C，可能有海风影响"
+    },
+    "MetLife Stadium, East Rutherford": {
+      "city": "纽约/新泽西", "country": "USA", "host": true,
+      "altitude_m": 3, "indoor": false, "capacity": 82500,
+      "pitch": "人工草皮",
+      "june_weather": "6月温暖，20-28°C，湿度适中，决赛场地"
+    },
+    "Gillette Stadium, Foxborough": {
+      "city": "波士顿", "country": "USA", "host": true,
+      "altitude_m": 78, "indoor": false, "capacity": 65000,
+      "pitch": "人工草皮",
+      "june_weather": "6月凉爽，偶尔阵雨，15-24°C"
+    },
+    "NRG Stadium, Houston": {
+      "city": "休斯顿", "country": "USA", "host": true,
+      "altitude_m": 13, "indoor": true, "capacity": 72000,
+      "pitch": "人工草皮",
+      "june_weather": "室内空调恒温，但室外高温高湿，进出球场温差大"
+    },
+    "AT&T Stadium, Arlington": {
+      "city": "达拉斯", "country": "USA", "host": true,
+      "altitude_m": 167, "indoor": true, "capacity": 80000,
+      "pitch": "人工草皮",
+      "june_weather": "室内恒温，6月室外炎热但球场内完美"
+    },
+    "Lincoln Financial Field, Philadelphia": {
+      "city": "费城", "country": "USA", "host": true,
+      "altitude_m": 12, "indoor": false, "capacity": 67500,
+      "pitch": "天然草皮",
+      "june_weather": "6月温暖潮湿，22-30°C，偶有雷暴"
+    },
+    "Arrowhead Stadium, Kansas City": {
+      "city": "堪萨斯城", "country": "USA", "host": true,
+      "altitude_m": 277, "indoor": false, "capacity": 76400,
+      "pitch": "天然草皮",
+      "june_weather": "6月炎热潮湿，25-35°C，中场降温补水重要"
+    },
+    "Lumen Field, Seattle": {
+      "city": "西雅图", "country": "USA", "host": true,
+      "altitude_m": 0, "indoor": false, "capacity": 69000,
+      "pitch": "人工草皮",
+      "june_weather": "6月凉爽多雨，12-20°C，湿滑草皮可能影响"
+    },
+    "Mercedes-Benz Stadium, Atlanta": {
+      "city": "亚特兰大", "country": "USA", "host": true,
+      "altitude_m": 320, "indoor": true, "capacity": 71000,
+      "pitch": "人工草皮",
+      "june_weather": "室内恒温，室外炎热但球场完美"
+    },
+    "Hard Rock Stadium, Miami": {
+      "city": "迈阿密", "country": "USA", "host": true,
+      "altitude_m": 3, "indoor": false, "capacity": 65300,
+      "pitch": "天然草皮",
+      "june_weather": "6月高温高湿，30-35°C，湿度80%+，对欧洲球队体能考验极大"
+    },
+    "Camping World Stadium, Orlando": {
+      "city": "奥兰多", "country": "USA", "host": true,
+      "altitude_m": 25, "indoor": false, "capacity": 60000,
+      "pitch": "天然草皮",
+      "june_weather": "6月高温高湿，30-36°C，午后雷阵雨频繁"
+    },
+    "Rose Bowl, Pasadena": {
+      "city": "洛杉矶", "country": "USA", "host": true,
+      "altitude_m": 251, "indoor": false, "capacity": 89000,
+      "pitch": "天然草皮",
+      "june_weather": "6月温暖干燥，20-30°C，傍晚凉爽"
+    }
+  },
+
+  "host_advantage": {
+    "description": "东道主在本届世界杯的主场优势量化",
+    "usa": {
+      "factor": 0.08,
+      "reason": "赛程全在美加墨境内，零时差零旅行，大量本国球迷。波切蒂诺体系在主场效果加倍"
+    },
+    "mexico": {
+      "factor": 0.10,
+      "reason": "阿兹特克球场海拔2250米是巨大优势，墨西哥球迷全球最狂热之一"
+    },
+    "canada": {
+      "factor": 0.05,
+      "reason": "主场优势但足球文化不如美墨浓厚，BMO球场容量偏小"
+    },
+    "general": {
+      "factor": 0.04,
+      "reason": "所有在中北美比赛的球队，欧洲和亚洲球队需要适应时差和气候",
+      "travel_impact": "欧洲→美东：-6小时时差，需2-3天适应。亚洲→美西：-15小时，影响更大"
+    }
+  },
+
+  "tournament_format": {
+    "groups": 12,
+    "teams_per_group": 4,
+    "advance": "每组前2名+8个成绩最好的小组第三 → 32强淘汰赛",
+    "tiebreakers": ["积分", "净胜球", "进球数", "相互战绩", "公平竞赛积分", "抽签"],
+    "implication": "小组第三也有出线希望，弱队更有动力拼到最后。强队需争取净胜球优势。"
+  },
+
+  "head_to_head": {
+    "Mexico vs South Africa": "历史交锋4次，墨西哥2胜1平1负，最近一次2010世界杯1-1",
+    "Brazil vs Morocco": "历史交锋3次，巴西2胜1负。2023年友谊赛摩洛哥2-1巴西，首支击败巴西的非洲球队",
+    "Argentina vs Algeria": "历史交锋1次，阿根廷胜。阿尔及利亚从未赢过南美球队",
+    "Germany vs Curacao": "历史无交锋，首次对阵",
+    "Netherlands vs Japan": "历史交锋3次，荷兰2胜1平0负，从未输给日本",
+    "England vs Croatia": "历史交锋11次，英格兰6胜2平3负。2018世界杯半决赛克罗地亚2-1英格兰",
+    "France vs Senegal": "2002世界杯揭幕战，塞内加尔1-0法国（世界杯历史最大冷门之一）",
+    "Portugal vs DR Congo": "历史无交锋",
+    "Spain vs Uruguay": "历史交锋10次，西班牙5胜5平0负，从未输给乌拉圭",
+    "USA vs Paraguay": "历史交锋8次，美国4胜2平2负",
+    "Canada vs Bosnia": "历史无交锋",
+    "South Korea vs Czech Republic": "历史交锋2次，各1胜"
+  },
+
+  "key_injuries": {
+    "Brazil": "内马尔(小腿伤缺首轮)，右后卫韦斯利伤缺",
+    "Netherlands": "哈维-西蒙斯(ACL赛季报销)，斯豪滕(ACL赛季报销)，德佩(腿筋存疑)",
+    "Morocco": "阿盖尔德(中卫，伤缺)，埃扎尔祖利(边锋，伤缺)",
+    "Belgium": "库尔图瓦(与主帅矛盾退出国家队，门将削弱)",
+    "Germany": "无重大伤缺",
+    "Argentina": "无重大伤缺，梅西赛季状态良好",
+    "France": "格列兹曼(已退出国家队)"
+  },
+
+  "schedule_fatigue": {
+    "description": "小组赛三场之间的休息天数对体彩预测极为重要",
+    "round1": "6月12-18日，各队首战无疲劳问题",
+    "round2": "6月19-24日，休息3-4天",
+    "round3": "6月25-30日，休息3-4天",
+    "impact": "同一场馆连续作战的球队节省旅行疲劳。横跨三个国家的球队消耗最大"
+  },
+
+  "referee_profile": {
+    "description": "2026年裁判趋势",
+    "trend": "FIFA推行严格执法，VAR介入增加，点球判罚率上升约15%。南美裁判尺度偏松，欧洲裁判偏严。"
+  }
+}
