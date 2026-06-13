@@ -32,10 +32,12 @@ def _load_persistent_cache():
 def _save_persistent_cache():
     """保存缓存到文件"""
     try:
+        os.makedirs(os.path.dirname(_CACHE_FILE), exist_ok=True)
         with open(_CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(_predict_cache, f, ensure_ascii=False, indent=2)
-    except OSError:
-        pass
+    except Exception as e:
+        import sys
+        print(f"[Cache] Save failed: {e}", file=sys.stderr)
 
 # ── 数据路径 ──────────────────────────────────────────
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
