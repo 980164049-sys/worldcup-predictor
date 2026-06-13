@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+data/matches.json
+.claude/
+*.wav
+*.docx
+desktop_organizer.py
+snake_game.py
+稻香晚风_歌词.txt
+星期五傍晚*.wav
