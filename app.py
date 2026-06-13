@@ -27,14 +27,20 @@ _NAME_CN_MAP = {}
 
 
 def _build_name_map():
-    """构建英文名→中文名映射"""
+    """构建英文名→中文名映射（含变音符容错）"""
     global _NAME_CN_MAP
     if _NAME_CN_MAP:
         return _NAME_CN_MAP
+    import unicodedata
     teams_data = load_teams_data()
     for group_data in teams_data["groups"].values():
         for team in group_data["teams"]:
             _NAME_CN_MAP[team["name"]] = team["name_cn"]
+            # 同时注册去变音符版本（如 Türkiye → Turkiye）
+            normalized = unicodedata.normalize('NFKD', team["name"])
+            ascii_name = ''.join(c for c in normalized if not unicodedata.combining(c))
+            if ascii_name != team["name"]:
+                _NAME_CN_MAP[ascii_name] = team["name_cn"]
     return _NAME_CN_MAP
 
 
