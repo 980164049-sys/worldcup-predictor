@@ -52,7 +52,9 @@
                     <div class="match-card" id="match-{{ loop.index }}"
                          data-home="{{ m.home }}"
                          data-away="{{ m.away }}"
-                         data-group="{{ m.group }}">
+                         data-group="{{ m.group }}"
+                         data-venue="{{ m.venue }}"
+                         data-round="{{ m.round_num }}">
                         <div class="match-time">
                             <span class="time">{{ m.time_cn }}</span>
                             <span class="group-badge">小组 {{ m.group }}</span>
