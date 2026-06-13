@@ -369,24 +369,80 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
 
 def _extract_json(text):
     """多层策略提取 JSON，兼容各种模型输出格式"""
+    # 先清理常见的非 JSON 前缀/后缀
+    cleaned = text.strip()
+    # 去掉开头可能的 "Here is..." / "以下是..." 等自然语言前缀
+    for marker in ["```json", "```", "{"]:
+        idx = cleaned.find(marker)
+        if idx > 0 and marker == "{" and cleaned[idx-1] in ("\n", " ", "："):
+            cleaned = cleaned[idx:]
+            break
+        elif idx >= 0 and marker != "{":
+            cleaned = cleaned[idx:]
+            break
+
     strategies = [
         # 1. 直接解析全文
         lambda t: json.loads(t),
         # 2. ```json ... ``` 包裹
-        lambda t: json.loads(t.split("```json")[1].split("```")[0].strip()),
-        # 3. ``` ... ``` 包裹（无json标记）
-        lambda t: json.loads(t.split("```")[1].split("```")[0].strip()),
-        # 4. 找到第一个 { 到最后一个 }
+        lambda t: json.loads(t.split("```json", 1)[1].split("```", 1)[0].strip()),
+        # 3. ``` ... ``` 包裹
+        lambda t: json.loads(t.split("```", 1)[1].split("```", 1)[0].strip()),
+        # 4. 第一个 { 到最后一个 }
         lambda t: json.loads(t[t.index("{"):t.rindex("}")+1]),
+        # 5. 正则找出所有 "key": value 对，重建 JSON
+        lambda t: _rebuild_json_from_text(t),
     ]
 
-    for i, strategy in enumerate(strategies):
+    for strategy in strategies:
         try:
-            return strategy(text)
-        except (json.JSONDecodeError, ValueError, IndexError):
+            return strategy(cleaned)
+        except (json.JSONDecodeError, ValueError, IndexError, KeyError):
             continue
 
     return None
+
+
+def _rebuild_json_from_text(text):
+    """从文本中提取关键字段拼回 JSON（最后兜底）"""
+    fields = {}
+    patterns = {
+        "score": [r'"score"\s*:\s*"(\d+-\d+)"', r'比分[：:]\s*(\d+\s*[-:]\s*\d+)'],
+        "winner": [r'"winner"\s*:\s*"([^"]+)"', r'胜者[：:]\s*(\S+)'],
+        "confidence": [r'"confidence"\s*:\s*"(\w+)"'],
+        "reasoning": [r'"reasoning"\s*:\s*"([^"]{20,})"'],
+        "betting_angle": [r'"betting_angle"\s*:\s*"([^"]+)"'],
+    }
+    for field, pats in patterns.items():
+        for pat in pats:
+            m = re.search(pat, text)
+            if m:
+                fields[field] = m.group(1).strip()
+                break
+
+    if "score" not in fields or len(fields) < 2:
+        raise ValueError("Not enough fields")
+
+    # 重建概率
+    prob = {"home": 0.33, "draw": 0.34, "away": 0.33}
+    for key in ["home", "draw", "away"]:
+        for pat in [rf'"{key}"\s*:\s*([\d.]+)', rf'"{key}".*?([\d.]+)']:
+            m = re.search(pat, text)
+            if m:
+                prob[key] = float(m.group(1))
+                break
+
+    return {
+        "score": fields.get("score", "?-?"),
+        "winner": fields.get("winner", "Unknown"),
+        "probability": prob,
+        "confidence": fields.get("confidence", "low"),
+        "reasoning": fields.get("reasoning", text[:200]),
+        "betting_angle": fields.get("betting_angle", ""),
+        "key_factors": [],
+        "upset_risks": ["解析异常，请参考reasoning"],
+        "score_range": "?-? 至 ?-?"
+    }
 
 
 def _validate_score_winner(pred, home_name, away_name):
