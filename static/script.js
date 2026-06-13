@@ -448,6 +448,25 @@ function cleanReasoning(text) {
     return text;
 }
 
+// ===== 刷新所有预测 =====
+async function refreshAllPredictions() {
+    if (!confirm('这将清除所有预测缓存，根据最新赛果重新预测。确定？')) return;
+    try {
+        const resp = await fetch('/api/refresh-predictions', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({all: true})
+        });
+        const data = await resp.json();
+        if (data.status === 'ok') {
+            alert('预测缓存已清除！刷新页面后将自动重新预测。');
+            location.reload();
+        }
+    } catch(err) {
+        alert('操作失败: ' + err.message);
+    }
+}
+
 // ===== 键盘快捷键 =====
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.ctrlKey) {
