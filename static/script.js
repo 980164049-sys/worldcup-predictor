@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
             predDiv.innerHTML = `
                 <div class="pred-result">
                     <div class="pred-winner">
-                        ${data.winner === 'Draw' ? '🤝 预测平局' : '🏆 预测胜者: ' + (data.winner === data.home_team.name ? homeName : awayName)}
+                        ${data.winner_cn === '平局' ? '🤝 预测平局' : '🏆 预测胜者: ' + (data.winner_cn || (data.winner === data.home_team.name ? homeName : awayName))}
                         <span class="confidence-tag ${confidence}">${confLabel[confidence] || confidence}</span>
                     </div>
                     <div class="probability-bars" style="margin:8px 0;">
@@ -213,7 +213,9 @@ function renderPrediction(data, container) {
     const awayName = data.away_team.name_cn || data.away_team.name;
 
     let winnerText = '';
-    if (data.winner === data.home_team.name) {
+    if (data.winner_cn) {
+        winnerText = data.winner_cn === '平局' ? '🤝 预测：平局' : `🏆 预测胜者：${data.winner_cn}`;
+    } else if (data.winner === data.home_team.name) {
         winnerText = `🏆 预测胜者：${homeName}`;
     } else if (data.winner === data.away_team.name) {
         winnerText = `🏆 预测胜者：${awayName}`;
