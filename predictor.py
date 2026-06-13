@@ -406,10 +406,34 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
     else:
         prediction["winner_cn"] = winner
 
+    # 后处理：如果 upset_risks 解析异常，从 reasoning 中提取
+    prediction = _fix_empty_risks(prediction)
+
     # 缓存（内存 + 文件持久化）
     _predict_cache[key] = prediction
     _save_persistent_cache()
     return prediction
+
+
+def _fix_empty_risks(pred):
+    """如果 upset_risks 是占位符，从 reasoning 里拆句子补上"""
+    risks = pred.get("upset_risks", [])
+    if not risks or any("解析异常" in str(r) or "无法分析" in str(r) for r in risks):
+        reasoning = pred.get("reasoning", "")
+        if reasoning:
+            # 从 reasoning 中找含风险关键词的句子
+            sentences = re.split(r'[。！；\n]', reasoning)
+            risk_sentences = []
+            risk_words = r'风险|隐患|可能|如果|但是|不过|然而|需要注意|警惕|万一|意外|变数|不确定|威胁|挑战'
+            for s in sentences:
+                if re.search(risk_words, s) and len(s) > 8:
+                    risk_sentences.append(s.strip())
+            if risk_sentences:
+                pred["upset_risks"] = risk_sentences[:3]
+            else:
+                # 完全没找到，给一个通用提示
+                pred["upset_risks"] = ["足球比赛充满不确定性，任何预测都可能被推翻"]
+    return pred
 
 
 def _extract_json(text):
