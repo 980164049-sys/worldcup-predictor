@@ -362,6 +362,17 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
     # 校验 score-winner 一致性（以比分为准）
     prediction = _validate_score_winner(prediction, home["name"], away["name"])
 
+    # 补充中文胜者名
+    winner = prediction.get("winner", "")
+    if winner == home["name"]:
+        prediction["winner_cn"] = home["name_cn"]
+    elif winner == away["name"]:
+        prediction["winner_cn"] = away["name_cn"]
+    elif winner.lower() == "draw":
+        prediction["winner_cn"] = "平局"
+    else:
+        prediction["winner_cn"] = winner
+
     # 缓存
     _predict_cache[key] = prediction
     return prediction
