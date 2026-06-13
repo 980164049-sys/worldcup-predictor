@@ -81,6 +81,7 @@ def index():
         "index.html",
         tomorrow_matches=tomorrow_matches,
         all_teams=all_teams,
+        today_str=now.strftime("%m月%d日"),
         tomorrow_str=tomorrow.strftime("%m月%d日"),
         has_api_key=has_api_key
     )
