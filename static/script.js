@@ -434,18 +434,19 @@ function escapeHtml(str) {
 }
 
 function cleanReasoning(text) {
-    // 如果 reasoning 是原始 JSON 代码，提取有用文字
     if (!text) return '';
-    // 检测是否包含大段 JSON
-    if (text.includes('{') && text.includes('"score"') && text.length > 300) {
-        // 尝试去掉 JSON 部分，保留自然语言
-        let cleaned = text.replace(/\{[\s\S]*\}/g, '');
-        if (cleaned.trim().length > 20) return cleaned.trim().substring(0, 250);
-        // 如果去掉 JSON 后就没东西了，截取前半段
-        const jsonStart = text.indexOf('{"');
-        if (jsonStart > 0) return text.substring(0, jsonStart).trim().substring(0, 250);
-    }
-    return text;
+    let cleaned = text;
+    // 1. 去掉 JSON 代码块
+    cleaned = cleaned.replace(/\{[\s\S]*?\}/g, '');
+    // 2. 去掉 markdown 代码块
+    cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+    // 3. 去掉 markdown 标记
+    cleaned = cleaned.replace(/[#*>_`~\[\]]/g, '');
+    // 4. 合并多余空白
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    // 5. 重新换行
+    cleaned = cleaned.replace(/。\s*/g, '。\n');
+    return cleaned.substring(0, 500);
 }
 
 // ===== 刷新所有预测 =====
