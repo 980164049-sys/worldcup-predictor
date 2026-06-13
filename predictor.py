@@ -493,25 +493,26 @@ def _validate_score_winner(pred, home_name, away_name):
     home_cn = pred.get("home_team", {}).get("name_cn", home_name)
     away_cn = pred.get("away_team", {}).get("name_cn", away_name)
 
-    # 检查 reasoning 里是否明确说了某队会赢
+    # 检查 reasoning 里是否明确说了某队会赢（匹配 Coverage 要广）
+    win_words = r'(?:取胜|获胜|赢球|胜出|拿下|击败|战胜|更胜一筹|技高一筹|占优|占上风|更强|优势明显|压倒性|胜算更大|胜面更大|更看好|看好)'
+    draw_words = r'(?:平局|战平|握手言和|难分胜负|势均力敌|平分秋色|难解难分|不分伯仲)'
+
     home_win_patterns = [
-        rf'{home_name}[会将]?(?:应该|预计|有望|可能)?[取胜赢]',
-        rf'{home_cn}[会将]?(?:应该|预计|有望|可能)?[取胜赢]',
-        rf'(?:看好|预计|认为).*?{home_name}.*?[取胜赢]',
-        rf'(?:看好|预计|认为).*?{home_cn}.*?[取胜赢]',
-        rf'{home_name}.*?(?:优势|占优|更强|胜出)',
-        rf'{home_cn}.*?(?:优势|占优|更强|胜出)',
+        rf'{home_name}.*?{win_words}',
+        rf'{home_cn}.*?{win_words}',
+        rf'{win_words}.*?{home_name}',
+        rf'{win_words}.*?{home_cn}',
+        rf'(?:最终|结果).*?{home_cn}[取胜赢获胜]',
     ]
     away_win_patterns = [
-        rf'{away_name}[会将]?(?:应该|预计|有望|可能)?[取胜赢]',
-        rf'{away_cn}[会将]?(?:应该|预计|有望|可能)?[取胜赢]',
-        rf'(?:看好|预计|认为).*?{away_name}.*?[取胜赢]',
-        rf'(?:看好|预计|认为).*?{away_cn}.*?[取胜赢]',
-        rf'{away_name}.*?(?:优势|占优|更强|胜出)',
-        rf'{away_cn}.*?(?:优势|占优|更强|胜出)',
+        rf'{away_name}.*?{win_words}',
+        rf'{away_cn}.*?{win_words}',
+        rf'{win_words}.*?{away_name}',
+        rf'{win_words}.*?{away_cn}',
+        rf'(?:最终|结果).*?{away_cn}[取胜赢获胜]',
     ]
     draw_patterns = [
-        r'(?:平局|战平|握手言和|难分胜负|势均力敌)',
+        rf'.*?{draw_words}.*?',
     ]
 
     for pat in home_win_patterns:
@@ -528,6 +529,19 @@ def _validate_score_winner(pred, home_name, away_name):
             if re.search(pat, reasoning):
                 reasoning_winner = "Draw"
                 break
+
+    # 兜底：简单数哪队名字在 reasoning 里和积极词共现更多
+    if not reasoning_winner:
+        home_score = len(re.findall(rf'{home_cn}|{home_name}', reasoning))
+        away_score = len(re.findall(rf'{away_cn}|{away_name}', reasoning))
+        # 在有获胜暗示的句子附近找队名
+        win_sentences = re.split(r'[。！，\n]', reasoning)
+        home_hints = sum(1 for s in win_sentences if re.search(rf'{home_cn}|{home_name}', s) and re.search(win_words, s))
+        away_hints = sum(1 for s in win_sentences if re.search(rf'{away_cn}|{away_name}', s) and re.search(win_words, s))
+        if home_hints > away_hints:
+            reasoning_winner = home_name
+        elif away_hints > home_hints:
+            reasoning_winner = away_name
 
     # 2. 解析 score 暗示的胜者
     try:
