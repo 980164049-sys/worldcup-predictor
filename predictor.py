@@ -107,18 +107,23 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
 请严格按以下 JSON 格式输出（不要包含其他文字）：
 {
   "winner": "主队名称 或 客队名称 或 Draw",
-  "score": "X-Y",
+  "score": "主队进球数-客队进球数（如 2-1 表示主队进2球客队进1球）",
   "probability": {
     "home": 0.XX,
     "draw": 0.XX,
     "away": 0.XX
   },
   "confidence": "high / medium / low",
-  "reasoning": "200字以内的分析理由，从战术对位、近期状态、关键球员、历史交锋等角度分析",
+  "reasoning": "200字以内的分析理由",
   "key_factors": ["因素1", "因素2", "因素3"],
   "upset_risks": ["可能导致翻车的风险1", "风险2"],
   "safe_pick": "最稳妥的投注方向建议，如：让球、大小球、双方进球等，一句话"
-}"""
+}
+
+⚠️ 重要：score 和 winner 必须自洽！
+- 如果 winner 是主队，score 必须是主队进球 > 客队进球（如 2-0、2-1）
+- 如果 winner 是客队，score 必须是客队进球 > 主队进球（如 0-1、1-2）
+- 如果 winner 是 Draw，score 必须两边相等（如 1-1、0-0）"""
 
     cautious_instruction = ""
     if conservative:
@@ -203,10 +208,43 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
     prediction["home_team"] = {"name": home["name"], "name_cn": home["name_cn"]}
     prediction["away_team"] = {"name": away["name"], "name_cn": away["name_cn"]}
 
+    # 校验 score 和 winner 一致性
+    prediction = _validate_prediction(prediction, home["name"], away["name"])
+
     # 存入缓存
     _predict_cache[key] = prediction
 
     return prediction
+
+
+def _validate_prediction(pred, home_name, away_name):
+    """修正 AI 输出中 score 和 winner 自相矛盾的情况"""
+    score = pred.get("score", "?-?")
+    winner = pred.get("winner", "")
+
+    try:
+        parts = score.split("-")
+        home_goals = int(parts[0].strip())
+        away_goals = int(parts[1].strip())
+    except (ValueError, IndexError):
+        return pred  # 无法解析，保持不变
+
+    # 判断 score 暗示的胜者
+    if home_goals > away_goals:
+        score_winner = home_name
+    elif away_goals > home_goals:
+        score_winner = away_name
+    else:
+        score_winner = "Draw"
+
+    # 如果 winner 和 score 不一致，以 score 为准修正 winner
+    # （比分比文字更可靠，因为比分是数字不容易错）
+    if (score_winner == home_name and winner not in (home_name, home_name.lower())) or \
+       (score_winner == away_name and winner not in (away_name, away_name.lower())) or \
+       (score_winner == "Draw" and winner.lower() != "draw"):
+        pred["winner"] = score_winner
+
+    return pred
 
 
 def _fallback_parse(text):
