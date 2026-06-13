@@ -14,6 +14,29 @@ ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 _client = None
 _predict_cache = {}
 
+# 持久化缓存路径
+_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "predictions_cache.json")
+
+
+def _load_persistent_cache():
+    """从文件加载持久化缓存"""
+    if os.path.exists(_CACHE_FILE):
+        try:
+            with open(_CACHE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {}
+
+
+def _save_persistent_cache():
+    """保存缓存到文件"""
+    try:
+        with open(_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(_predict_cache, f, ensure_ascii=False, indent=2)
+    except OSError:
+        pass
+
 # ── 数据路径 ──────────────────────────────────────────
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 TEAMS_PATH = os.path.join(DATA_DIR, "teams.json")
@@ -238,8 +261,13 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
     if not away:
         raise ValueError(f"未找到球队: {away_team}")
 
-    # 检查缓存
+    # 检查缓存（内存 → 持久化）
     key = _cache_key(home["name"], away["name"], match_context)
+    if key in _predict_cache:
+        return _predict_cache[key]
+    # 服务器重启后从文件恢复
+    if not _predict_cache:
+        _predict_cache.update(_load_persistent_cache())
     if key in _predict_cache:
         return _predict_cache[key]
 
@@ -378,8 +406,9 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
     else:
         prediction["winner_cn"] = winner
 
-    # 缓存
+    # 缓存（内存 + 文件持久化）
     _predict_cache[key] = prediction
+    _save_persistent_cache()
     return prediction
 
 
