@@ -15,19 +15,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const home = card.dataset.home;
         const away = card.dataset.away;
         const group = card.dataset.group;
+        const venue = card.dataset.venue || '';
+        const round = card.dataset.round || '1';
         const predDiv = card.querySelector('.match-prediction');
         const scoreArea = card.querySelector('.score');
 
         if (!home || !away || !predDiv) return;
 
-        // 发起预测
+        // 发起预测（含完整比赛因素）
         fetch('/api/predict', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 home_team: home,
                 away_team: away,
-                match_context: `小组${group}第1轮`,
+                match_context: `小组${group}第${round}轮`,
+                match_info: {
+                    venue: venue,
+                    group: group,
+                    round_num: parseInt(round)
+                },
                 use_ai: true,
                 deep: false,
                 conservative: true
@@ -52,6 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // 渲染预测卡片
             const confLabel = {high: '🟢 高置信度', medium: '🟡 中等置信度', low: '🔴 低置信度'};
             const confidence = data.confidence || 'medium';
+            const betting = data.betting_angle || data.safe_pick || '';
+            const scoreRange = data.score_range || '';
             predDiv.innerHTML = `
                 <div class="pred-result">
                     <div class="pred-winner">
@@ -75,15 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="prob-track"><div class="prob-fill away" style="width:${prob.away*100}%;"></div></div>
                         </div>
                     </div>
-                    <div class="pred-reasoning">${escapeHtml(data.reasoning).substring(0, 150)}...</div>
+                    ${scoreRange ? `<div style="text-align:center;font-size:13px;color:var(--text-dim);margin:4px 0;">📊 比分区间: ${escapeHtml(scoreRange)}</div>` : ''}
+                    ${betting ? `<div class="safe-pick"><strong>🎯 投注建议：</strong> ${escapeHtml(betting)}</div>` : ''}
+                    <div class="pred-reasoning">${escapeHtml(data.reasoning).substring(0, 200)}...</div>
                     ${data.upset_risks ? `
                     <div class="upset-risks">
                         <strong>⚠️ 翻车风险：</strong>
                         <ul>${data.upset_risks.map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul>
-                    </div>` : ''}
-                    ${data.safe_pick ? `
-                    <div class="safe-pick">
-                        <strong>🛡️ 安全方向：</strong> ${escapeHtml(data.safe_pick)}
                     </div>` : ''}
                     <div class="risk-disclaimer">⚠️ AI 预测仅供参考，足球比赛充满不确定性，请理性购彩</div>
                 </div>
