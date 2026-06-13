@@ -318,21 +318,27 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
         temperature=0.1,
     )
 
-    # 提取文本
-    text_blocks = [b for b in response.content if b.type == "text"]
-    if not text_blocks:
+    # 提取文本（兼容 DeepSeek 的 thinking 模式）
+    text = ""
+    for block in response.content:
+        if block.type == "text":
+            text += block.text
+        elif block.type == "thinking":
+            # 跳过 thinking block，不加入 text
+            pass
+        elif hasattr(block, 'text'):
+            text += block.text
+
+    if not text.strip():
         raise RuntimeError("AI 未返回文本内容，请重试")
-    text = text_blocks[0].text.strip()
 
-    # 解析 JSON
-    if "```json" in text:
-        text = text.split("```json")[1].split("```")[0].strip()
-    elif "```" in text:
-        text = text.split("```")[1].split("```")[0].strip()
+    text = text.strip()
 
-    try:
-        prediction = json.loads(text)
-    except json.JSONDecodeError:
+    # 多层 JSON 提取策略
+    prediction = _extract_json(text)
+
+    if prediction is None:
+        # 最后一次尝试：用正则暴力提取关键字段
         prediction = _fallback_parse(text)
 
     # 补充球队信息
@@ -345,6 +351,28 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
     # 缓存
     _predict_cache[key] = prediction
     return prediction
+
+
+def _extract_json(text):
+    """多层策略提取 JSON，兼容各种模型输出格式"""
+    strategies = [
+        # 1. 直接解析全文
+        lambda t: json.loads(t),
+        # 2. ```json ... ``` 包裹
+        lambda t: json.loads(t.split("```json")[1].split("```")[0].strip()),
+        # 3. ``` ... ``` 包裹（无json标记）
+        lambda t: json.loads(t.split("```")[1].split("```")[0].strip()),
+        # 4. 找到第一个 { 到最后一个 }
+        lambda t: json.loads(t[t.index("{"):t.rindex("}")+1]),
+    ]
+
+    for i, strategy in enumerate(strategies):
+        try:
+            return strategy(text)
+        except (json.JSONDecodeError, ValueError, IndexError):
+            continue
+
+    return None
 
 
 def _validate_score_winner(pred, home_name, away_name):
@@ -372,17 +400,58 @@ def _validate_score_winner(pred, home_name, away_name):
 
 
 def _fallback_parse(text):
-    return {
+    result = {
         "winner": "Unknown",
         "score": "?-?",
         "probability": {"home": 0.33, "draw": 0.34, "away": 0.33},
         "confidence": "low",
         "reasoning": text[:300],
-        "betting_angle": "数据不足以给出建议",
+        "betting_angle": "",
         "key_factors": [],
         "upset_risks": ["AI返回格式异常，无法分析具体风险"],
         "score_range": "?-? 至 ?-?"
     }
+
+    # 尝试从文本中提取比分
+    score_patterns = [
+        r'比分[：:]\s*(\d+)\s*[-:]\s*(\d+)',
+        r'score[：:"]\s*["\']?(\d+)\s*[-:]\s*(\d+)',
+        r'(\d+)\s*[-:]\s*(\d+)',
+    ]
+    for pat in score_patterns:
+        m = re.search(pat, text)
+        if m:
+            result["score"] = f"{m.group(1)}-{m.group(2)}"
+            break
+
+    # 尝试提取胜者
+    if "平局" in text or "draw" in text.lower() or "Draw" in text:
+        result["winner"] = "Draw"
+    elif re.search(r'(主队|home)\s*(胜|赢|win)', text, re.IGNORECASE):
+        result["winner"] = "home"
+    elif re.search(r'(客队|away)\s*(胜|赢|win)', text, re.IGNORECASE):
+        result["winner"] = "away"
+
+    # 尝试提取概率
+    for key, patterns in [
+        ("home", [r'主队[胜赢].*?(\d+)%', r'home.*?(\d+)\s*%']),
+        ("draw", [r'平.*?(\d+)%', r'draw.*?(\d+)\s*%']),
+        ("away", [r'客队[胜赢].*?(\d+)%', r'away.*?(\d+)\s*%']),
+    ]:
+        for pat in patterns:
+            m = re.search(pat, text, re.IGNORECASE)
+            if m:
+                result["probability"][key] = int(m.group(1)) / 100
+                break
+
+    # 尝试提取投注建议
+    for pat in [r'(?:投注|betting|建议)[：:]\s*(.+?)(?:\n|$)', r'安全.*?[：:]\s*(.+?)(?:\n|$)']:
+        m = re.search(pat, text, re.IGNORECASE)
+        if m:
+            result["betting_angle"] = m.group(1).strip()
+            break
+
+    return result
 
 
 def quick_predict(home_team, away_team, match_context=""):
