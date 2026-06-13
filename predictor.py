@@ -320,7 +320,9 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
 {cautious_note}
 {depth_note}
 
-请给出你的专业预测（严格按JSON格式输出，score和winner必须逻辑一致）。"""
+请给出你的专业预测（严格按JSON格式输出，score和winner必须逻辑一致）。
+
+🔴 本场比赛是【{home['name']} vs {away['name']}】，不是任何其他球队。reasoning 中绝对不要提及不属于这场比赛的其他国家队名称。"""
 
     # ── 调用 AI ──
     client = get_client()
@@ -359,8 +361,11 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
     prediction["home_team"] = {"name": home["name"], "name_cn": home["name_cn"]}
     prediction["away_team"] = {"name": away["name"], "name_cn": away["name_cn"]}
 
-    # 校验 score-winner 一致性（以比分为准，但 reasoning 说了算）
+    # 校验 score-winner 一致性（reasoning 最高权威）
     prediction = _validate_score_winner(prediction, home["name"], away["name"])
+
+    # 检查 reasoning 是否提到了不在场球队（幻觉），标记风险
+    prediction = _check_hallucination(prediction, home, away)
 
     # 补充中文胜者名
     winner = prediction.get("winner", "")
@@ -454,6 +459,27 @@ def _rebuild_json_from_text(text):
         "upset_risks": ["解析异常，请参考reasoning"],
         "score_range": "?-? 至 ?-?"
     }
+
+
+def _check_hallucination(pred, home, away):
+    """检查 reasoning 是否混淆了球队（比如在海地vs苏格兰中提到英格兰）"""
+    reasoning = pred.get("reasoning", "")
+    # 常见混淆对：苏格兰↔英格兰、海地↔其他加勒比岛国等
+    known_confusions = {
+        "Scotland": ["England", "英格兰"],
+        "Haiti": ["Jamaica", "牙买加", "Cuba", "古巴"],
+    }
+    found_wrong = []
+    for team_name, wrong_names in known_confusions.items():
+        if team_name.lower() == home["name"].lower() or team_name.lower() == away["name"].lower():
+            for wn in wrong_names:
+                if wn.lower() in reasoning.lower():
+                    found_wrong.append(f"提到了{wn}但实际参赛队是{team_name}")
+
+    if found_wrong:
+        pred["upset_risks"] = pred.get("upset_risks", []) + found_wrong
+        pred["confidence"] = "low"
+    return pred
 
 
 def _validate_score_winner(pred, home_name, away_name):
