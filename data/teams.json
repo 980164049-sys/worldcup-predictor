@@ -207,6 +207,7 @@
         },
         {
           "name": "Turkiye",
+          "name_ascii": "Turkiye",
           "name_cn": "土耳其",
           "fifa_ranking": 22,
           "elo_rating": 1740,
