@@ -359,7 +359,7 @@ def predict_match(home_team, away_team, match_context="", deep=False, conservati
     prediction["home_team"] = {"name": home["name"], "name_cn": home["name_cn"]}
     prediction["away_team"] = {"name": away["name"], "name_cn": away["name_cn"]}
 
-    # 校验 score-winner 一致性（以比分为准）
+    # 校验 score-winner 一致性（以比分为准，但 reasoning 说了算）
     prediction = _validate_score_winner(prediction, home["name"], away["name"])
 
     # 补充中文胜者名
@@ -457,25 +457,83 @@ def _rebuild_json_from_text(text):
 
 
 def _validate_score_winner(pred, home_name, away_name):
-    """修正score和winner不一致的情况"""
+    """修正score/winner/reasoning三者不一致的情况，reasoning权威最高"""
     score = pred.get("score", "")
     winner = pred.get("winner", "")
+    reasoning = pred.get("reasoning", "")
+
+    # 1. 从 reasoning 中推断 AI 真正认为谁会赢
+    reasoning_winner = None
+    home_cn = pred.get("home_team", {}).get("name_cn", home_name)
+    away_cn = pred.get("away_team", {}).get("name_cn", away_name)
+
+    # 检查 reasoning 里是否明确说了某队会赢
+    home_win_patterns = [
+        rf'{home_name}[会将]?(?:应该|预计|有望|可能)?[取胜赢]',
+        rf'{home_cn}[会将]?(?:应该|预计|有望|可能)?[取胜赢]',
+        rf'(?:看好|预计|认为).*?{home_name}.*?[取胜赢]',
+        rf'(?:看好|预计|认为).*?{home_cn}.*?[取胜赢]',
+        rf'{home_name}.*?(?:优势|占优|更强|胜出)',
+        rf'{home_cn}.*?(?:优势|占优|更强|胜出)',
+    ]
+    away_win_patterns = [
+        rf'{away_name}[会将]?(?:应该|预计|有望|可能)?[取胜赢]',
+        rf'{away_cn}[会将]?(?:应该|预计|有望|可能)?[取胜赢]',
+        rf'(?:看好|预计|认为).*?{away_name}.*?[取胜赢]',
+        rf'(?:看好|预计|认为).*?{away_cn}.*?[取胜赢]',
+        rf'{away_name}.*?(?:优势|占优|更强|胜出)',
+        rf'{away_cn}.*?(?:优势|占优|更强|胜出)',
+    ]
+    draw_patterns = [
+        r'(?:平局|战平|握手言和|难分胜负|势均力敌)',
+    ]
+
+    for pat in home_win_patterns:
+        if re.search(pat, reasoning):
+            reasoning_winner = home_name
+            break
+    if not reasoning_winner:
+        for pat in away_win_patterns:
+            if re.search(pat, reasoning):
+                reasoning_winner = away_name
+                break
+    if not reasoning_winner:
+        for pat in draw_patterns:
+            if re.search(pat, reasoning):
+                reasoning_winner = "Draw"
+                break
+
+    # 2. 解析 score 暗示的胜者
     try:
         hg, ag = map(int, score.strip().split("-"))
     except:
         return pred
 
     if hg > ag:
-        correct = home_name
+        score_winner = home_name
     elif ag > hg:
-        correct = away_name
+        score_winner = away_name
     else:
-        correct = "Draw"
+        score_winner = "Draw"
 
-    if (correct == home_name and winner != home_name) or \
-       (correct == away_name and winner != away_name) or \
-       (correct == "Draw" and winner.lower() != "draw"):
-        pred["winner"] = correct
+    # 3. 三方一致性检查：reasoning > score > winner（优先级递减）
+    if reasoning_winner and reasoning_winner != score_winner:
+        # reasoning 和 score 冲突 → 以 reasoning 为准，翻转 score
+        if reasoning_winner == home_name:
+            pred["score"] = f"{max(hg, ag)}-{min(hg, ag)}"
+            pred["winner"] = home_name
+        elif reasoning_winner == away_name:
+            pred["score"] = f"{min(hg, ag)}-{max(hg, ag)}"
+            pred["winner"] = away_name
+        else:  # Draw
+            avg = (hg + ag) // 2
+            pred["score"] = f"{avg}-{avg}"
+            pred["winner"] = "Draw"
+    elif score_winner != winner and winner.lower() != "draw" and score_winner != winner:
+        # score 和 winner 冲突 → 以 score 为准
+        pred["winner"] = score_winner
+    elif winner.lower() == "draw" and score_winner != "Draw":
+        pred["winner"] = score_winner
 
     return pred
 
