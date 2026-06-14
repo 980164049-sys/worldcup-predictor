@@ -16,7 +16,7 @@ from flask import Flask, render_template, request, jsonify, send_from_directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from predictor import predict_match, quick_predict, load_teams_data, find_team
-from data.fetcher import get_today_matches, get_all_matches, load_matches, refresh_data, get_matches, fetch_live_results
+from data.fetcher import get_today_matches, get_all_matches, load_matches, refresh_data, get_matches, fetch_live_results, update_team_strength_from_results
 
 app = Flask(__name__)
 
