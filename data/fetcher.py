@@ -23,11 +23,11 @@ BUILT_IN_SCHEDULE = [
     {"date_cn": "06-12", "group": "A", "round_num": 1,
      "home": "Mexico", "away": "South Africa",
      "venue": "Estadio Azteca, Mexico City", "time_cn": "03:00",
-     "result": "2-0"},
+     "result": None},
     {"date_cn": "06-12", "group": "A", "round_num": 1,
      "home": "South Korea", "away": "Czech Republic",
      "venue": "Estadio Akron, Guadalajara", "time_cn": "10:00",
-     "result": "2-1"},
+     "result": None},
 
     # === 6月13日 ===
 
@@ -35,29 +35,29 @@ BUILT_IN_SCHEDULE = [
     {"date_cn": "06-13", "group": "B", "round_num": 1,
      "home": "Canada", "away": "Bosnia and Herzegovina",
      "venue": "BMO Field, Toronto", "time_cn": "03:00",
-     "result": "1-1"},
+     "result": None},
     {"date_cn": "06-13", "group": "D", "round_num": 1,
      "home": "United States", "away": "Paraguay",
      "venue": "SoFi Stadium, Los Angeles", "time_cn": "09:00",
-     "result": "4-1"},
+     "result": None},
 
     # === 6月14日 ===
     {"date_cn": "06-14", "group": "B", "round_num": 1,
      "home": "Qatar", "away": "Switzerland",
      "venue": "Levi's Stadium, Santa Clara", "time_cn": "03:00",
-     "result": "0-2"},
+     "result": None},
     {"date_cn": "06-14", "group": "C", "round_num": 1,
      "home": "Brazil", "away": "Morocco",
      "venue": "MetLife Stadium, East Rutherford", "time_cn": "06:00",
-     "result": "3-1"},
+     "result": None},
     {"date_cn": "06-14", "group": "C", "round_num": 1,
      "home": "Haiti", "away": "Scotland",
      "venue": "Gillette Stadium, Foxborough", "time_cn": "09:00",
-     "result": "0-1"},
+     "result": None},
     {"date_cn": "06-14", "group": "D", "round_num": 1,
      "home": "Australia", "away": "Turkiye",
      "venue": "BC Place, Vancouver", "time_cn": "12:00",
-     "result": "1-2"},
+     "result": None},
 
     # === 6月15日 ===
     {"date_cn": "06-15", "group": "E", "round_num": 1,
@@ -348,73 +348,87 @@ def _generate_score(home_team, away_team, prediction):
     return f"{hg}-{ag}"
 
 
-def _scrape_espn_results():
-    """从 ESPN API 抓取 2026 世界杯实时比分"""
-    try:
-        # ESPN 的隐藏 API 端点
-        url = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard"
-        resp = requests.get(url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }, timeout=10)
-        if resp.status_code != 200:
-            return None
-
-        data = resp.json()
-        results = {}
-        for event in data.get("events", []):
-            home = event.get("competitions", [{}])[0].get("competitors", [])
-            if len(home) >= 2:
-                home_team = home[0].get("team", {}).get("displayName", "")
-                away_team = home[1].get("team", {}).get("displayName", "")
-                home_score = home[0].get("score", "")
-                away_score = home[1].get("score", "")
-                if home_score != "" and away_score != "":
-                    key = f"{home_team.lower()}|{away_team.lower()}"
-                    results[key] = f"{home_score}-{away_score}"
-
-        if results:
-            print(f"[ESPN] Fetched {len(results)} live results", flush=True)
-        return results
-    except Exception as e:
-        print(f"[ESPN] Fetch failed: {e}", flush=True)
-        return None
+# ESPN 队名 → 我们 teams.json 队名的映射（处理命名差异）
+ESPN_NAME_MAP = {
+    "czechia": "Czech Republic",
+    "bosnia-herzegovina": "Bosnia and Herzegovina",
+    "türkiye": "Turkiye",
+    "curacao": "Curaçao",
+    "curaçao": "Curaçao",
+    "dr congo": "DR Congo",
+    "congo dr": "DR Congo",
+    "cape verde": "Cape Verde",
+    "ivory coast": "Ivory Coast",
+    "côte d'ivoire": "Ivory Coast",
+    "south korea": "South Korea",
+    "korea republic": "South Korea",
+    "united states": "United States",
+    "usa": "United States",
+    "saudi arabia": "Saudi Arabia",
+    "new zealand": "New Zealand",
+    "united arab emirates": "UAE",
+}
 
 
-def _scrape_fifa_results():
-    """从 FIFA 官网抓取比分"""
-    try:
-        url = "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/match-center"
-        resp = requests.get(url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "text/html,application/xhtml+xml",
-        }, timeout=15)
-        if resp.status_code != 200:
-            return None
+def _espn_name_to_ours(espn_name):
+    """将 ESPN 队名转换为我们 teams.json 中的标准名"""
+    key = espn_name.lower().strip()
+    if key in ESPN_NAME_MAP:
+        return ESPN_NAME_MAP[key]
+    # 直接返回（大多数队名一致）
+    return espn_name
 
-        soup = BeautifulSoup(resp.text, "html.parser")
-        results = {}
 
-        # 查找比分模式: XX-XX 或 X : X
-        score_patterns = soup.find_all(string=re.compile(r'\d+\s*[-:]\s*\d+'))
-        # 更精确的查找：在比赛卡片上下文中查找
-        match_cards = soup.find_all(["div", "article"], class_=re.compile(r'match|fixture|result', re.I))
-        for card in match_cards:
-            text = card.get_text()
-            # 找比分
-            score_match = re.search(r'(\d+)\s*[-:]\s*(\d+)', text)
-            if score_match:
-                # 尝试找队名上下文
-                lines = text.strip().split('\n')
-                for i, line in enumerate(lines):
-                    if re.search(r'\d+\s*[-:]\s*\d+', line):
-                        # 上下行可能是队名
-                        # 简化处理：记录所有找到的比分
-                        pass
+def _scrape_espn_all_dates():
+    """从 ESPN API 抓取所有已完赛的比赛结果（多日期查询）"""
+    import unicodedata
+    results = {}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
 
-        return results if results else None
-    except Exception as e:
-        print(f"[FIFA] Fetch failed: {e}", flush=True)
-        return None
+    # 从揭幕日 6/11 (US时间) 到今天，逐个日期查询
+    start_date = datetime(2026, 6, 11, tzinfo=CST)
+    today = datetime.now(CST)
+
+    date = start_date
+    while date <= today:
+        date_str = date.strftime("%Y%m%d")
+        url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates={date_str}"
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                for event in data.get("events", []):
+                    status = event.get("status", {}).get("type", {})
+                    if status.get("state") != "post":  # 只取已完赛的
+                        continue
+                    comps = event.get("competitions", [{}])[0]
+                    competitors = comps.get("competitors", [])
+                    if len(competitors) >= 2:
+                        h = competitors[0]
+                        a = competitors[1]
+                        h_name = _espn_name_to_ours(h.get("team", {}).get("displayName", ""))
+                        a_name = _espn_name_to_ours(a.get("team", {}).get("displayName", ""))
+                        h_score = str(h.get("score", ""))
+                        a_score = str(a.get("score", ""))
+                        if h_score and a_score and h_score != "?" and a_score != "?":
+                            # 去除变音符做 key（用于匹配）
+                            h_norm = unicodedata.normalize('NFKD', h_name)
+                            h_norm = ''.join(c for c in h_norm if not unicodedata.combining(c)).lower()
+                            a_norm = unicodedata.normalize('NFKD', a_name)
+                            a_norm = ''.join(c for c in a_norm if not unicodedata.combining(c)).lower()
+                            key = f"{h_norm}|{a_norm}"
+                            score = f"{h_score}-{a_score}"
+                            results[key] = score
+        except Exception as e:
+            print(f"[ESPN] Date {date_str} failed: {e}", flush=True)
+
+        date += timedelta(days=1)
+
+    if results:
+        print(f"[ESPN] Fetched {len(results)} completed matches total", flush=True)
+    return results
 
 
 def _normalize_name(name):
@@ -425,57 +439,46 @@ def _normalize_name(name):
 
 
 def fetch_live_results():
-    """从网络抓取最新赛果，匹配到赛程中"""
-    # 先尝试 ESPN API（最可靠）
-    live_results = _scrape_espn_results()
-
-    # 如果 ESPN 失败，尝试其他源
-    if not live_results:
-        live_results = _scrape_fifa_results()
+    """从 ESPN API 抓取所有已完赛结果，匹配到赛程中（唯一数据源）"""
+    live_results = _scrape_espn_all_dates()
 
     if not live_results:
-        print("[Fetch] No live results available from any source", flush=True)
+        print("[Fetch] No results from ESPN", flush=True)
         return None
 
     matches = _load_matches_raw()
-    now = datetime.now(CST)
     updated = 0
 
     for m in matches:
-        # 只更新已结束且无结果的比赛
-        resolve_match_status(m, now)
-        if m.get("status") != "completed":
-            continue
-        if m.get("result") is not None:
-            continue  # 已有结果，跳过
-
+        # 总是以 ESPN 数据覆盖（确保没有手动假数据）
         home_key = _normalize_name(m["home"])
         away_key = _normalize_name(m["away"])
 
-        # 用模糊匹配（去变音符）查找
         for key, score in live_results.items():
-            parts = key.lower().split("|")
+            parts = key.split("|")
             if len(parts) != 2:
                 continue
-            espn_home = _normalize_name(parts[0])
-            espn_away = _normalize_name(parts[1])
+            espn_home = parts[0]
+            espn_away = parts[1]
 
-            # 双向匹配（espn可能主客对调）
+            # 双向匹配
             if (home_key == espn_home and away_key == espn_away) or \
                (home_key == espn_away and away_key == espn_home):
-                # 确认比分合理
                 if re.match(r'^\d+-\d+$', score):
-                    m["result"] = score
-                    m["status"] = "completed"
-                    print(f"[Fetch] Updated: {m['home']} {score} {m['away']}", flush=True)
-                    updated += 1
+                    old_result = m.get("result")
+                    if old_result != score:
+                        m["result"] = score
+                        m["status"] = "completed"
+                        print(f"[Fetch] {m['home']} {score} {m['away']}"
+                              f"{' (corrected from '+old_result+')' if old_result else ''}", flush=True)
+                        updated += 1
                     break
 
     if updated:
         save_matches(matches)
-        print(f"[Fetch] {updated} results updated from live data", flush=True)
+        print(f"[Fetch] {updated} results updated from ESPN", flush=True)
 
-    return matches if updated else None
+    return matches
 
 
 def auto_resolve_results(matches=None):
