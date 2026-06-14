@@ -477,6 +477,8 @@ def fetch_live_results():
     if updated:
         save_matches(matches)
         print(f"[Fetch] {updated} results updated from ESPN", flush=True)
+        # 赛后学习：根据真实赛果调整球队strength
+        update_team_strength_from_results()
 
     return matches
 
@@ -501,6 +503,106 @@ def auto_resolve_results(matches=None):
         print("[AutoResolve] No live data available, will retry on next request", flush=True)
 
     return pending
+
+
+def update_team_strength_from_results():
+    """根据ESPN真实赛果对比预测，动态调整球队strength评分"""
+    matches = _load_matches_raw()
+    pred_cache = _load_pred_cache()
+    teams_data = _load_teams()
+
+    # 建查找表
+    team_lookup = {}
+    for g_data in teams_data["groups"].values():
+        for t in g_data["teams"]:
+            team_lookup[t["name"].lower()] = t
+
+    updates = []
+    for m in matches:
+        result = m.get("result")
+        if not result or "-" not in result:
+            continue
+
+        home_name = m["home"]
+        away_name = m["away"]
+        hg, ag = map(int, result.split("-"))
+
+        # 确定真实赛果
+        if hg > ag:
+            real_winner = "home"
+        elif ag > hg:
+            real_winner = "away"
+        else:
+            real_winner = "draw"
+
+        # 找预测
+        prediction = None
+        for key, pred in pred_cache.items():
+            if home_name.lower() in key.lower() and away_name.lower() in key.lower():
+                prediction = pred
+                break
+
+        if not prediction:
+            continue
+
+        pred_score = prediction.get("score", "")
+        try:
+            phg, pag = map(int, pred_score.split("-"))
+        except:
+            continue
+
+        if phg > pag:
+            pred_winner = "home"
+        elif pag > phg:
+            pred_winner = "away"
+        else:
+            pred_winner = "draw"
+
+        # 只处理"爆冷"情况（预测≠实际）
+        home_team = team_lookup.get(home_name.lower())
+        away_team = team_lookup.get(away_name.lower())
+        if not home_team or not away_team:
+            continue
+
+        home_adj = 0
+        away_adj = 0
+
+        if real_winner == "home" and pred_winner != "home":
+            # 主队爆冷赢球
+            home_adj = +1.0 if pred_winner == "draw" else +1.5
+            away_adj = -0.5 if pred_winner == "draw" else -1.0
+        elif real_winner == "away" and pred_winner != "away":
+            # 客队爆冷赢球
+            away_adj = +1.0 if pred_winner == "draw" else +1.5
+            home_adj = -0.5 if pred_winner == "draw" else -1.0
+        elif real_winner == "draw" and pred_winner != "draw":
+            # 预测非平局但打平 → 弱队+1，强队-0.5
+            if pred_winner == "home":
+                home_adj = -0.5
+                away_adj = +1.0
+            else:
+                away_adj = -0.5
+                home_adj = +1.0
+
+        if home_adj != 0 or away_adj != 0:
+            old_home = home_team.get("strength", 5)
+            old_away = away_team.get("strength", 5)
+            home_team["strength"] = max(1, min(10, round(old_home + home_adj, 1)))
+            away_team["strength"] = max(1, min(10, round(old_away + away_adj, 1)))
+            updates.append({
+                "match": f"{home_name} {result} {away_name}",
+                "home_strength": f"{old_home}→{home_team['strength']}",
+                "away_strength": f"{old_away}→{away_team['strength']}",
+            })
+
+    if updates:
+        with open(os.path.join(DATA_DIR, "teams.json"), "w", encoding="utf-8") as f:
+            json.dump(teams_data, f, ensure_ascii=False, indent=2)
+        print(f"[Strength] Updated {len(updates)} teams based on real results:", flush=True)
+        for u in updates:
+            print(f"  {u['match']}: H {u['home_strength']} A {u['away_strength']}", flush=True)
+
+    return updates
 
 
 def update_match_result(date_cn, home, away, result):
