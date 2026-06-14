@@ -16,7 +16,7 @@ from flask import Flask, render_template, request, jsonify, send_from_directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from predictor import predict_match, quick_predict, load_teams_data, find_team
-from data.fetcher import get_today_matches, get_all_matches, load_matches, refresh_data, get_matches
+from data.fetcher import get_today_matches, get_all_matches, load_matches, refresh_data, get_matches, fetch_live_results
 
 app = Flask(__name__)
 
@@ -232,6 +232,36 @@ def api_refresh():
     try:
         matches = refresh_data()
         return jsonify({"status": "ok", "count": len(matches)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/fetch-results", methods=["POST"])
+def api_fetch_results():
+    """从网络抓取最新比分，更新赛果"""
+    try:
+        result = fetch_live_results()
+        if result is None:
+            return jsonify({"status": "no_update", "message": "暂无网络赛果数据"})
+        # 清除相关预测缓存
+        pred_cache = _load_pred_cache()
+        stale_keys = []
+        for m in result:
+            if m.get("result"):
+                for key in list(pred_cache.keys()):
+                    for team in [m["home"], m["away"]]:
+                        if team.lower() in key.lower():
+                            stale_keys.append(key)
+                            break
+        for key in set(stale_keys):
+            del pred_cache[key]
+        if stale_keys:
+            _save_pred_cache(pred_cache)
+        return jsonify({
+            "status": "ok",
+            "updated": len([m for m in result if m.get("result")]),
+            "predictions_cleared": len(set(stale_keys))
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
