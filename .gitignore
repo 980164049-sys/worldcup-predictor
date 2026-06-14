@@ -1,7 +1,7 @@
 __pycache__/
 *.pyc
 .env
-data/matches.json
+# matches.json is tracked for result sync
 .claude/
 *.wav
 *.docx
